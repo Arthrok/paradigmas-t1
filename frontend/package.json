@@ -1,0 +1,23 @@
+{
+  "name": "carimbo-frontend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "elm-test",
+    "format": "elm-format src --yes",
+    "lint": "elm-format src --validate"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "daisyui": "^5.7.46",
+    "elm": "^0.19.2-0",
+    "elm-format": "^0.8.8",
+    "elm-test": "^0.19.2-1",
+    "tailwindcss": "^4.3.3",
+    "vite": "^8.3.1",
+    "vite-plugin-elm": "^3.0.1"
+  }
+}
