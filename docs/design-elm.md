@@ -52,7 +52,7 @@ type Celula
 
 type alias Posicao = { linha : Int, coluna : Int }
 
--- Opaco: o construtor não é exportado. Toda Fase existente é NxN, com 4 ≤ N ≤ 7.
+-- Opaco: o construtor não é exportado. Toda Fase existente é NxN, com 4 ≤ N ≤ 6.
 type Fase = Fase { n : Int, celulas : Array (Array Celula) }
 
 criar : List (List Celula) -> Result String Fase
@@ -196,9 +196,15 @@ type Msg
   tem cadeado e cursor bloqueado.
 - **Passar o mouse** sobre uma célula pré-visualiza as células que o carimbo
   dela afeta (usa `Fase` puro, sem servidor).
-- Níveis pré-definidos (`Fácil`/`Médio`/`Difícil`) viram a dificuldade
-  numérica pelo tamanho. No 5x5: 4, 8 e 12. Para outros tamanhos, calibrar na
-  issue do gerador.
+- Níveis pré-definidos viram a dificuldade numérica (mínimo de cliques) pelo
+  tamanho. Calibrado em 15/11: todas as combinações geram em todas as
+  variantes, em até ~3,5 s (pior caso: clássico 6x6).
+
+  | Tamanho | Fácil | Médio | Difícil |
+  |---|---|---|---|
+  | 4x4 | 3 | 5 | 6 |
+  | 5x5 | 4 | 8 | 12 |
+  | 6x6 | 5 | 10 | 15 |
 
 ## Testes (`elm-test`)
 
@@ -207,7 +213,7 @@ type Msg
 | `apertar p (apertar p f) == f` para todo `p`, `f` | fuzz |
 | `apertar a (apertar b f) == apertar b (apertar a f)` | fuzz |
 | apertar uma `Travada` não muda nada | fuzz |
-| `criar` rejeita matriz não quadrada e tamanho fora de 4..7 | unitário |
+| `criar` rejeita matriz não quadrada e tamanho fora de 4..6 | unitário |
 | cada `Forma` afeta exatamente as células da tabela | unitário |
 | `desfazer (avancar x h)` volta para `atual h` | fuzz |
 | decoder de `Fase` aceita o exemplo de `docs/api.md` e rejeita carimbo inválido | unitário |

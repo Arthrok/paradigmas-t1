@@ -26,7 +26,7 @@ repassa para a porta 8000).
 |---|---|
 | `luzes` | matriz NxN de inteiros 0/1, onde 1 = acesa |
 | `carimbos` | matriz NxN com `"cruz"`, `"xis"`, `"linha"`, `"coluna"`, `"bloco"` ou `"trava"` |
-| N | de 4 a 7, e as duas matrizes têm o mesmo N |
+| N | de 4 a 6, e as duas matrizes têm o mesmo N |
 
 ### `Posicao`
 
@@ -62,7 +62,7 @@ Gera uma fase nova que com certeza tem solução, com dificuldade exata.
 
 | Campo | Regra |
 |---|---|
-| `tamanho` | 4 a 7 |
+| `tamanho` | 4 a 6 |
 | `dificuldade` | ≥ 1, é o número mínimo de cliques da fase gerada |
 | `variante` | `"classico"` (só cruz), `"carimbos"` (cinco formas), `"carimbos_travas"` (cinco formas + ~15% de travas) |
 
@@ -74,11 +74,12 @@ Gera uma fase nova que com certeza tem solução, com dificuldade exata.
 
 **Erros 422**
 
-- `"Não foi possível gerar uma fase com essa dificuldade."` quando o limite de
-  tentativas estourou (ADR 0007).
+- `"Não foi possível gerar uma fase com essa dificuldade."` quando o gerador
+  não consegue em 5 s (ADR 0007). Acontece com dificuldades impossíveis para o
+  tamanho, como 16 no clássico 5x5.
 - Parâmetro fora da faixa ou variante desconhecida.
 
-**Tempo esperado:** 0,02–0,3 s típico; até ~2 s no pior caso validado.
+**Tempo esperado:** com carimbos, 0,02–1 s. No `classico` é mais lento: ~0,5 s no 5x5 e 2–3,5 s no 6x6. Os níveis pré-definidos do Elm ficam dentro desses tempos (ver `design-elm.md`).
 
 ---
 
@@ -151,8 +152,8 @@ janus converte.
 
 | Rota | Predicado | Saída em caso de erro |
 |---|---|---|
-| `/api/gerar` | `fronteira:gerar(+Variante:string, +N, +Dif, -Luzes, -Carimbos, -Min)` | falha → 422 |
-| `/api/verificar` | `fronteira:verificar(+Luzes, +Carimbos, -NSolucoes, -Min)` | `Min = nenhum` quando não há solução |
+| `/api/gerar` | `fronteira:gerar(+Variante:string, +N, +Dif, -Luzes, -Carimbos)` | falha → 422. O mínimo é a própria dificuldade (garantido pelo gerador) |
+| `/api/verificar` | `fronteira:verificar(+Luzes, +Carimbos, -Resultado)` | `Resultado` = `[Solucoes, Minimo]` ou `sem_solucao` |
 | `/api/dica` | `fronteira:dica(+Luzes, +Carimbos, -Resultado)` | `Resultado` = `[L, C]`, `sem_solucao` ou `resolvida` |
 | `/api/resolver` | `fronteira:resolver(+Luzes, +Carimbos, -Resultado)` | `Resultado` = `[Cliques, Min]` ou `sem_solucao` |
 

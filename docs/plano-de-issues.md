@@ -42,7 +42,7 @@ issue. **Todo mundo precisa conseguir explicar o código atribuído a si**
 
 | # | Issue | Responsável | Depende de |
 |---|---|---|---|
-| 4 | `regras.pl`: carimbos, `afeta/4`, `apertar/3`, `resolvida/1` | Caio | 1 |
+| 4 | `regras.pl`: carimbos, `afeta/3`, `apertar/3`, `resolvida/1` | Caio | 1 |
 | 5 | `solver.pl`: modelo de restrições e **F1** verificar solução | Isaque | 1, 4* |
 | 6 | `solver.pl`: **F3** solução mínima e **F2** dica | Isaque | 5 |
 | 7 | `gerador.pl`: **F4** gerador e **F5** variantes | Caio | 4, 6 |
