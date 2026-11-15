@@ -7,14 +7,15 @@ documento mostra o panorama, as dependências e a ordem.
 
 | Pessoa | GitHub | Frente principal |
 |---|---|---|
-| Arthur Alves Melo | @Arthrok | infra, Python, fronteira Prolog, integração, entrega |
-| Caio Lucas Lelis Borges | @caio-lelis | Prolog: regras e gerador · editor de fases (Elm) |
-| Isaque Santos | @IsaqueSH | Prolog: solver, dica, solução mínima · testes de borda |
-| Maria Eduarda dos Santos Marques | @EduardaSMarques | Elm: domínio (`Fase`, `Historico`) e testes |
-| João Pedro da Silva Rodrigues | @joaopedrodasilvarodrigues | Elm: `Api`, `Main`, tela de nova fase |
-| Bruna de Lima Santos | @libruna | Elm: view do tabuleiro, visual, dica e solução na UI |
+| Arthur Alves Melo | @Arthrok | base, Prolog completo, API, domínio Elm (#1, #3–#10, #12) · relatório e entrega |
+| Caio Lucas Lelis Borges | @caio-lelis | Elm: solução mínima na UI e editor de fases · relatório Prolog |
+| Isaque Santos | @IsaqueSH | Elm: `Api.elm` · integração e casos de borda · relatório Prolog |
+| Maria Eduarda dos Santos Marques | @EduardaSMarques | Elm: `Historico` e desfazer/refazer |
+| João Pedro da Silva Rodrigues | @joaopedrodasilvarodrigues | Elm: `Main`, tela de nova fase |
+| Bruna de Lima Santos | @libruna | Elm: view do tabuleiro, visual, dica na UI |
 
-A divisão é uma sugestão: troquem à vontade, mas atualizem os responsáveis na
+Redistribuída em 15/11, depois que as issues #1, #3–#10 e #12 foram feitas
+(PRs #28, #29 e #30). Troquem à vontade, mas atualizem os responsáveis na
 issue. **Todo mundo precisa conseguir explicar o código atribuído a si**
 (seção 2.1 da avaliação), e todo mundo tem uma parte do relatório.
 
@@ -42,16 +43,16 @@ issue. **Todo mundo precisa conseguir explicar o código atribuído a si**
 
 | # | Issue | Responsável | Depende de |
 |---|---|---|---|
-| 4 | `regras.pl`: carimbos, `afeta/3`, `apertar/3`, `resolvida/1` | Caio | 1 |
-| 5 | `solver.pl`: modelo de restrições e **F1** verificar solução | Isaque | 1, 4* |
-| 6 | `solver.pl`: **F3** solução mínima e **F2** dica | Isaque | 5 |
-| 7 | `gerador.pl`: **F4** gerador e **F5** variantes | Caio | 4, 6 |
+| 4 | `regras.pl`: carimbos, `afeta/3`, `apertar/3`, `resolvida/1` | Arthur | 1 |
+| 5 | `solver.pl`: modelo de restrições e **F1** verificar solução | Arthur | 1, 4* |
+| 6 | `solver.pl`: **F3** solução mínima e **F2** dica | Arthur | 5 |
+| 7 | `gerador.pl`: **F4** gerador e **F5** variantes | Arthur | 4, 6 |
 | 8 | `fronteira.pl`: API pública do Prolog para o Python | Arthur | 5, 6, 7 |
 | 9 | Rotas FastAPI e testes pytest | Arthur | 1, 8* |
-| 10 | `Fase.elm`: tipos do domínio, `apertar`, `resolvida`, `criar` | Maria Eduarda | 1 |
+| 10 | `Fase.elm`: tipos do domínio, `apertar`, `resolvida`, `criar` | Arthur | 1 |
 | 11 | `Historico.elm`: desfazer/refazer genérico + testes | Maria Eduarda | 1 |
-| 12 | Testes fuzz de `Fase.elm` | Maria Eduarda | 10 |
-| 13 | `Api.elm`: requisições, encoders, decoders, `Remoto` | João Pedro | 10 |
+| 12 | Testes fuzz de `Fase.elm` | Arthur | 10 |
+| 13 | `Api.elm`: requisições, encoders, decoders, `Remoto` | Isaque | 10 |
 | 14 | `View/Tabuleiro.elm`: grid, ícones dos carimbos, visual | Bruna | 10 |
 | 15 | `Main.elm`: Model, Msg, máquina de estados, clique local | João Pedro | 10, 11, 13, 14 |
 
@@ -65,10 +66,10 @@ dependência fechar.
 |---|---|---|---|
 | 16 | **F4 + F5** na UI: tela de nova fase (tamanho, nível, variante) | João Pedro | 9, 15 |
 | 17 | **F2** na UI: pedir dica e destacar a célula | Bruna | 9, 15 |
-| 18 | **F3** na UI: mínimo, animação da solução, tela de vitória | Bruna | 9, 15 |
+| 18 | **F3** na UI: mínimo, animação da solução, tela de vitória | Caio | 9, 15 |
 | 19 | Desfazer, refazer e reiniciar na UI | Maria Eduarda | 11, 15 |
 | 20 | **F1** na UI: editor de fases com verificação | Caio | 9, 15 |
-| 21 | Integração ponta a ponta e casos de borda (seção 8 do relatório) | Arthur, Isaque | 16, 17, 18 |
+| 21 | Integração ponta a ponta e casos de borda (seção 8 do relatório) | Isaque | 16, 17, 18 |
 
 ### Onda 3: entrega (16–18/11)
 
