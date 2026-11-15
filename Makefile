@@ -6,7 +6,7 @@
 PROLOG_FONTES := $(filter-out $(wildcard backend/prolog/test_*.pl),$(wildcard backend/prolog/*.pl))
 PROLOG_TESTES := $(wildcard backend/prolog/test_*.pl)
 
-.PHONY: install dev backend frontend build test test-prolog test-backend lint lint-prolog lint-elm format validar
+.PHONY: install dev backend frontend build test test-prolog test-backend test-elm lint lint-prolog lint-elm format validar
 
 install:            ## instala as dependências do backend e do frontend
 	cd backend && uv sync
@@ -24,13 +24,16 @@ frontend:           ## só o frontend: http://localhost:5173
 build:              ## compila o frontend (falha se o Elm não compilar)
 	cd frontend && npm run build
 
-test: test-prolog test-backend
+test: test-prolog test-backend test-elm
 
 test-prolog:        ## testes plunit
 	swipl -g run_tests -t halt $(PROLOG_TESTES)
 
 test-backend:       ## testes da API (pytest)
 	cd backend && uv run pytest
+
+test-elm:           ## testes do Elm (elm-test, com fuzz)
+	cd frontend && npm test
 
 lint: lint-prolog lint-elm
 

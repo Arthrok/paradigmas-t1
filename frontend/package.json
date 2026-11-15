@@ -7,8 +7,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "elm-test",
-    "format": "elm-format src --yes",
-    "lint": "elm-format src --validate"
+    "format": "elm-format src tests --yes",
+    "lint": "elm-format src tests --validate"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
