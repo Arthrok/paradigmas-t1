@@ -37,8 +37,9 @@ fronteira verificável: é só olhar os `import`.
 ```elm
 module Fase exposing
     ( Fase, Celula(..), Forma(..), Luz(..), Posicao
-    , criar, tamanho, celula, linhas
-    , apertar, resolvida, inverterLuz
+    , tamanhoMinimo, tamanhoMaximo
+    , criar, linhas, tamanho, celula, luz
+    , apertar, afetadas, resolvida
     )
 
 type Luz = Acesa | Apagada
@@ -53,10 +54,13 @@ type Celula
 type alias Posicao = { linha : Int, coluna : Int }
 
 -- Opaco: o construtor não é exportado. Toda Fase existente é NxN, com 4 ≤ N ≤ 6.
-type Fase = Fase { n : Int, celulas : Array (Array Celula) }
+-- Uma lista de listas basta: o tabuleiro tem no máximo 6x6.
+type Fase = Fase (List (List Celula))
 
 criar : List (List Celula) -> Result String Fase
+celula : Posicao -> Fase -> Maybe Celula
 apertar : Posicao -> Fase -> Fase      -- célula travada ou fora do tabuleiro: devolve igual
+afetadas : Posicao -> Fase -> List Posicao   -- para a view pré-visualizar o clique
 resolvida : Fase -> Bool
 ```
 
