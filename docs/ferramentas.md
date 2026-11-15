@@ -34,6 +34,8 @@ uv --version
 | `make test-backend` | só o pytest |
 | `make test-elm` | só o elm-test |
 | `make format` | aplica o `elm-format` em `frontend/src` e `frontend/tests` |
+| `make lint` | falha se algum `.pl` carregar com aviso ou algum `.elm` não estiver formatado |
+| `make build` | compila o frontend (falha se o Elm não compilar) |
 | `make validar` | roda o validador do relatório do professor |
 
 Abra <http://localhost:5173> para jogar e <http://localhost:8000/docs> para
