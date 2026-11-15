@@ -1,0 +1,24 @@
+/* Estilo do Carimbó.
+
+   O Elm escreve classes que dizem O QUE o elemento é (`class "app"`), e este
+   arquivo diz COMO ele aparece, com o @apply do Tailwind e os componentes do
+   daisyUI. O visual completo do jogo vem na issue #14. */
+
+@import "tailwindcss";
+
+/* O Tailwind só gera as classes que encontra no código-fonte. */
+@source "./**/*.elm";
+
+@plugin "daisyui" {
+  themes: light --default, dark --prefersdark;
+}
+
+@layer components {
+  .app {
+    @apply flex min-h-screen flex-col items-center justify-center gap-2 bg-base-200;
+  }
+
+  .app-title {
+    @apply text-4xl font-bold;
+  }
+}
