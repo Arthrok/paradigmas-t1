@@ -22,7 +22,7 @@ Algoritmo de `gerar(+Variante, +N, +Dificuldade, -Fase)`:
 3. Calcular a solução mínima (F3). Se ela for **menor** que a dificuldade
    (porque os cliques sorteados tinham um atalho), descartar e tentar de novo
    (`repeat`).
-4. **Limite de tentativas** (ex.: 200). Se estourar, falhar, e a API responde
+4. **Limite de tempo** (5 s, com `call_with_time_limit/2`). Se estourar, falhar, e a API responde
    422. Isso é necessário porque algumas dificuldades são inalcançáveis: no
    5x5 clássico, o mínimo nunca passa de 15.
 
