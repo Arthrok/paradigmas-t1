@@ -38,9 +38,12 @@ Células travadas têm `A[c] = 0`.
 
 ## Consequências
 
-- Um único modelo (`modelo/3`) sustenta F1, F2, F3 e F4.
+- Um único modelo (`modelo/2`) sustenta F1, F2, F3 e F4.
 - O código descreve *o que é* uma solução, que é o argumento central da
   seção 5.3 do relatório.
 - O custo é ~0,1–0,4 s por chamada no 5x5, dominado pela montagem das
   restrições. A UI precisa de estado de carregamento.
-- Limite de tamanho suportado: 4x4 a 7x7 (validado de 5x5 a 7x7).
+- Limite de tamanho suportado: **4x4 a 6x6**. Na calibração do gerador (15/11), o modo
+  `classico` não gerou nenhuma fase 7x7 em 5 s: com só cruzes, as restrições se
+  sobrepõem muito e o modelo fica pesado. Com carimbos o 7x7 funciona, mas
+  limitamos todas as variantes a 6x6 para o jogo ser previsível.
