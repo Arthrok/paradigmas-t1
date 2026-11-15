@@ -16,7 +16,7 @@ servidor, o jogo pareceria travado.
 - **O Prolog só é chamado para raciocinar:** verificar (F1), dar dica (F2),
   achar a solução mínima (F3) e gerar fase (F4/F5).
 - A regra de "quem afeta quem" existe nas duas linguagens:
-  `afeta/4` em `regras.pl` e `Fase.apertar` em `Fase.elm`.
+  `afeta/3` em `regras.pl` e `Fase.apertar` em `Fase.elm`.
 
 ## Consequências
 

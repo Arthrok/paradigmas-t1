@@ -137,8 +137,8 @@ este diagrama são o [0003](adr/0003-estado-no-elm.md) (estado no Elm) e o
 ```
 backend/
   prolog/
-    regras.pl            carimbos, afeta/4, apertar/3, resolvida/1
-    solver.pl            modelo/3, num_solucoes/2, solucao_minima/3, dica/2
+    regras.pl            carimbos, celula/3, afeta/3, apertar/3, resolvida/1
+    solver.pl            modelo/2, num_solucoes/2, solucao_minima/3, dica/2
     gerador.pl           variante/3, gerar/4
     fronteira.pl         API pública para o Python: conversão string↔átomo, erros
     test_regras.pl       plunit
