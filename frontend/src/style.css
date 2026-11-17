@@ -1,12 +1,5 @@
-/* Estilo do Carimbó.
-
-   O Elm escreve classes que dizem O QUE o elemento é (`class "app"`), e este
-   arquivo diz COMO ele aparece, com o @apply do Tailwind e os componentes do
-   daisyUI. O visual completo do jogo vem na issue #14. */
-
 @import "tailwindcss";
 
-/* O Tailwind só gera as classes que encontra no código-fonte. */
 @source "./**/*.elm";
 
 @plugin "daisyui" {
@@ -32,6 +25,22 @@
 
   .tabuleiro-celula {
     @apply flex size-14 items-center justify-center rounded-lg border border-base-content/10 select-none;
+  }
+
+  .tabuleiro-celula-botao {
+    @apply flex size-full items-center justify-center rounded-lg bg-transparent;
+  }
+
+  .tabuleiro-celula-botao:enabled {
+    @apply cursor-pointer;
+  }
+
+  .tabuleiro-celula-botao:disabled {
+    @apply cursor-not-allowed;
+  }
+
+  .tabuleiro-celula--bloqueada {
+    @apply opacity-60;
   }
 
   .tabuleiro-celula--acesa {

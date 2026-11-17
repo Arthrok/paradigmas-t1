@@ -3,6 +3,7 @@ module TabuleiroTest exposing (suite)
 import Expect exposing (Expectation)
 import Fase exposing (Celula(..), Fase, Forma(..), Luz(..))
 import Test exposing (Test, describe, test)
+import Test.Html.Event as Event
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector
 import View.Tabuleiro as Tabuleiro
@@ -10,6 +11,7 @@ import View.Tabuleiro as Tabuleiro
 
 type Msg
     = Ignorar
+    | Clicou Fase.Posicao
 
 
 suite : Test
@@ -43,6 +45,25 @@ suite =
                             , \_ -> celulaTem fase 0 1 "tabuleiro-celula--apagada" "✖"
                             ]
                             ()
+        , test "célula ativa emite a posição clicada" <|
+            \_ ->
+                comFaseDeCarimbos <|
+                    \fase ->
+                        botaoNaPosicao config fase 0 2
+                            |> Event.simulate Event.click
+                            |> Event.expect (Clicou { linha = 0, coluna = 2 })
+        , test "célula travada fica desabilitada" <|
+            \_ ->
+                comFaseDeCarimbos <|
+                    \fase ->
+                        botaoNaPosicao config fase 0 5
+                            |> Query.has [ Selector.disabled True ]
+        , test "configuração bloqueada desabilita células ativas" <|
+            \_ ->
+                comFaseDeCarimbos <|
+                    \fase ->
+                        botaoNaPosicao { config | bloqueado = True } fase 0 0
+                            |> Query.has [ Selector.disabled True ]
         ]
 
 
@@ -93,9 +114,17 @@ celulaTem fase linha coluna classe icone =
             ]
 
 
+botaoNaPosicao : Tabuleiro.Config Msg -> Fase -> Int -> Int -> Query.Single Msg
+botaoNaPosicao configuracao fase linha coluna =
+    Tabuleiro.view configuracao fase
+        |> Query.fromHtml
+        |> Query.find [ Selector.id ("celula-" ++ String.fromInt linha ++ "-" ++ String.fromInt coluna) ]
+        |> Query.find [ Selector.tag "button" ]
+
+
 config : Tabuleiro.Config Msg
 config =
-    { aoClicar = \_ -> Ignorar
+    { aoClicar = Clicou
     , aoPassar = \_ -> Ignorar
     , posicaoEmFoco = Nothing
     , dica = Nothing

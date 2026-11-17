@@ -21,8 +21,9 @@ células e comunica interações ao módulo pai por meio de `Config`.
 -}
 
 import Fase exposing (Celula(..), Fase, Forma(..), Luz(..), Posicao)
-import Html exposing (Html, div, span, text)
-import Html.Attributes exposing (attribute, class, id)
+import Html exposing (Html, button, div, span, text)
+import Html.Attributes exposing (attribute, class, disabled, id, type_)
+import Html.Events exposing (onClick)
 
 
 {-| Informa à view como emitir eventos e quais realces deve apresentar.
@@ -67,13 +68,26 @@ viewLinha config numeroDaLinha celulas =
 
 
 viewCelula : Config msg -> Int -> Int -> Celula -> Html msg
-viewCelula _ numeroDaLinha numeroDaColuna celula =
+viewCelula config numeroDaLinha numeroDaColuna celula =
     let
         aparencia =
             aparenciaDaCelula celula
+
+        posicao =
+            { linha = numeroDaLinha, coluna = numeroDaColuna }
+
+        estaBloqueada =
+            config.bloqueado || ehTravada celula
+
+        classes =
+            if config.bloqueado then
+                "tabuleiro-celula--bloqueada" :: aparencia.classes
+
+            else
+                aparencia.classes
     in
     div
-        [ class (String.join " " ("tabuleiro-celula" :: aparencia.classes))
+        [ class (String.join " " ("tabuleiro-celula" :: classes))
         , id (idDaCelula numeroDaLinha numeroDaColuna)
         , attribute "role" "gridcell"
         , attribute "data-linha" (String.fromInt numeroDaLinha)
@@ -81,12 +95,39 @@ viewCelula _ numeroDaLinha numeroDaColuna celula =
         , attribute "data-carimbo" aparencia.carimbo
         , attribute "data-luz" aparencia.luz
         ]
-        [ span
-            [ class "tabuleiro-celula-icone"
-            , attribute "aria-hidden" "true"
+        [ button
+            (atributosDoBotao config posicao estaBloqueada)
+            [ span
+                [ class "tabuleiro-celula-icone"
+                , attribute "aria-hidden" "true"
+                ]
+                [ text aparencia.icone ]
             ]
-            [ text aparencia.icone ]
         ]
+
+
+atributosDoBotao : Config msg -> Posicao -> Bool -> List (Html.Attribute msg)
+atributosDoBotao config posicao estaBloqueada =
+    [ class "tabuleiro-celula-botao"
+    , type_ "button"
+    , disabled estaBloqueada
+    ]
+        ++ (if estaBloqueada then
+                []
+
+            else
+                [ onClick (config.aoClicar posicao) ]
+           )
+
+
+ehTravada : Celula -> Bool
+ehTravada celula =
+    case celula of
+        Travada _ ->
+            True
+
+        Ativa _ _ ->
+            False
 
 
 idDaCelula : Int -> Int -> String
