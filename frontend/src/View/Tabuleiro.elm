@@ -28,8 +28,13 @@ import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 
 {-| Informa à view como emitir eventos e quais realces deve apresentar.
 
-Os campos de interação serão usados nas próximas partes da issue. Mantê-los no
-contrato desde o início permite que `Main` e a view evoluam em paralelo.
+  - `aoClicar`: mensagem emitida por uma célula ativa;
+  - `aoPassar`: informa a posição sob o ponteiro, ou `Nothing` ao sair;
+  - `posicaoEmFoco`: origem da pré-visualização calculada por `Fase.afetadas`;
+  - `dica`: posição sugerida pelo solver;
+  - `bloqueado`: desativa interações durante carregamentos ou animações.
+
+O estado permanece no módulo pai. A view apenas o representa e emite mensagens.
 
 -}
 type alias Config msg =
@@ -41,7 +46,11 @@ type alias Config msg =
     }
 
 
-{-| Desenha todas as linhas e células de uma fase.
+{-| Desenha todas as linhas e células de uma fase como uma grade acessível.
+
+Cada célula ativa é um botão; travas continuam visíveis, mas não podem ser
+acionadas. Luz, carimbo, prévia e dica são derivados somente de `Fase` e `Config`.
+
 -}
 view : Config msg -> Fase -> Html msg
 view config fase =

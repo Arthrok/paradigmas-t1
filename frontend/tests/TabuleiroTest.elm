@@ -218,6 +218,29 @@ suite =
                                     |> Query.has [ atributo "aria-rowindex" "1" ]
                             ]
                             ()
+        , test "bloqueio remove uma prévia residual" <|
+            \_ ->
+                comFaseDeCarimbos <|
+                    \fase ->
+                        let
+                            configuracao =
+                                { config
+                                    | bloqueado = True
+                                    , posicaoEmFoco = Just { linha = 0, coluna = 0 }
+                                }
+                        in
+                        Tabuleiro.view configuracao fase
+                            |> Query.fromHtml
+                            |> Query.findAll [ Selector.class "tabuleiro-celula--afetada" ]
+                            |> Query.count (Expect.equal 0)
+        , test "dica fora do tabuleiro não destaca nenhuma célula" <|
+            \_ ->
+                comFaseDeCarimbos <|
+                    \fase ->
+                        Tabuleiro.view { config | dica = Just { linha = 99, coluna = 99 } } fase
+                            |> Query.fromHtml
+                            |> Query.findAll [ Selector.class "tabuleiro-celula--dica" ]
+                            |> Query.count (Expect.equal 0)
         ]
 
 
