@@ -10,8 +10,8 @@ import View.Tabuleiro as Tabuleiro
 
 
 type Msg
-    = Ignorar
-    | Clicou Fase.Posicao
+    = Clicou Fase.Posicao
+    | Passou (Maybe Fase.Posicao)
 
 
 suite : Test
@@ -64,6 +64,44 @@ suite =
                     \fase ->
                         botaoNaPosicao { config | bloqueado = True } fase 0 0
                             |> Query.has [ Selector.disabled True ]
+        , test "entrar numa célula ativa informa sua posição" <|
+            \_ ->
+                comFaseDeCarimbos <|
+                    \fase ->
+                        botaoNaPosicao config fase 0 2
+                            |> Event.simulate Event.mouseEnter
+                            |> Event.expect (Passou (Just { linha = 0, coluna = 2 }))
+        , test "sair de uma célula ativa limpa o foco" <|
+            \_ ->
+                comFaseDeCarimbos <|
+                    \fase ->
+                        botaoNaPosicao config fase 0 2
+                            |> Event.simulate Event.mouseLeave
+                            |> Event.expect (Passou Nothing)
+        , test "prévia no canto respeita as bordas do tabuleiro" <|
+            \_ ->
+                comFaseDeCarimbos <|
+                    \fase ->
+                        Tabuleiro.view { config | posicaoEmFoco = Just { linha = 0, coluna = 0 } } fase
+                            |> Query.fromHtml
+                            |> Query.findAll [ Selector.class "tabuleiro-celula--afetada" ]
+                            |> Query.count (Expect.equal 3)
+        , test "prévia destaca uma trava afetada por outro carimbo" <|
+            \_ ->
+                comFaseDeCarimbos <|
+                    \fase ->
+                        Tabuleiro.view { config | posicaoEmFoco = Just { linha = 0, coluna = 4 } } fase
+                            |> Query.fromHtml
+                            |> Query.find [ Selector.id "celula-0-5" ]
+                            |> Query.has [ Selector.class "tabuleiro-celula--afetada" ]
+        , test "passar sobre uma trava não cria prévia" <|
+            \_ ->
+                comFaseDeCarimbos <|
+                    \fase ->
+                        Tabuleiro.view { config | posicaoEmFoco = Just { linha = 0, coluna = 5 } } fase
+                            |> Query.fromHtml
+                            |> Query.findAll [ Selector.class "tabuleiro-celula--afetada" ]
+                            |> Query.count (Expect.equal 0)
         ]
 
 
@@ -125,7 +163,7 @@ botaoNaPosicao configuracao fase linha coluna =
 config : Tabuleiro.Config Msg
 config =
     { aoClicar = Clicou
-    , aoPassar = \_ -> Ignorar
+    , aoPassar = Passou
     , posicaoEmFoco = Nothing
     , dica = Nothing
     , bloqueado = False

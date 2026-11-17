@@ -23,7 +23,7 @@ células e comunica interações ao módulo pai por meio de `Config`.
 import Fase exposing (Celula(..), Fase, Forma(..), Luz(..), Posicao)
 import Html exposing (Html, button, div, span, text)
 import Html.Attributes exposing (attribute, class, disabled, id, type_)
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 
 
 {-| Informa à view como emitir eventos e quais realces deve apresentar.
@@ -45,30 +45,43 @@ type alias Config msg =
 -}
 view : Config msg -> Fase -> Html msg
 view config fase =
+    let
+        posicoesAfetadas =
+            if config.bloqueado then
+                []
+
+            else
+                case config.posicaoEmFoco of
+                    Just posicao ->
+                        Fase.afetadas posicao fase
+
+                    Nothing ->
+                        []
+    in
     div
         [ class "tabuleiro"
         , attribute "role" "grid"
         , attribute "data-tamanho" (String.fromInt (Fase.tamanho fase))
         ]
         (Fase.linhas fase
-            |> List.indexedMap (viewLinha config)
+            |> List.indexedMap (viewLinha config posicoesAfetadas)
         )
 
 
-viewLinha : Config msg -> Int -> List Celula -> Html msg
-viewLinha config numeroDaLinha celulas =
+viewLinha : Config msg -> List Posicao -> Int -> List Celula -> Html msg
+viewLinha config posicoesAfetadas numeroDaLinha celulas =
     div
         [ class "tabuleiro-linha"
         , attribute "role" "row"
         , attribute "data-linha" (String.fromInt numeroDaLinha)
         ]
         (celulas
-            |> List.indexedMap (viewCelula config numeroDaLinha)
+            |> List.indexedMap (viewCelula config posicoesAfetadas numeroDaLinha)
         )
 
 
-viewCelula : Config msg -> Int -> Int -> Celula -> Html msg
-viewCelula config numeroDaLinha numeroDaColuna celula =
+viewCelula : Config msg -> List Posicao -> Int -> Int -> Celula -> Html msg
+viewCelula config posicoesAfetadas numeroDaLinha numeroDaColuna celula =
     let
         aparencia =
             aparenciaDaCelula celula
@@ -79,12 +92,17 @@ viewCelula config numeroDaLinha numeroDaColuna celula =
         estaBloqueada =
             config.bloqueado || ehTravada celula
 
-        classes =
-            if config.bloqueado then
-                "tabuleiro-celula--bloqueada" :: aparencia.classes
+        estaAfetada =
+            List.member posicao posicoesAfetadas
 
-            else
-                aparencia.classes
+        estaEmFoco =
+            not estaBloqueada && config.posicaoEmFoco == Just posicao
+
+        classes =
+            aparencia.classes
+                |> adicionarClasseSe config.bloqueado "tabuleiro-celula--bloqueada"
+                |> adicionarClasseSe estaAfetada "tabuleiro-celula--afetada"
+                |> adicionarClasseSe estaEmFoco "tabuleiro-celula--foco"
     in
     div
         [ class (String.join " " ("tabuleiro-celula" :: classes))
@@ -116,8 +134,20 @@ atributosDoBotao config posicao estaBloqueada =
                 []
 
             else
-                [ onClick (config.aoClicar posicao) ]
+                [ onClick (config.aoClicar posicao)
+                , onMouseEnter (config.aoPassar (Just posicao))
+                , onMouseLeave (config.aoPassar Nothing)
+                ]
            )
+
+
+adicionarClasseSe : Bool -> String -> List String -> List String
+adicionarClasseSe condicao nomeDaClasse classes =
+    if condicao then
+        nomeDaClasse :: classes
+
+    else
+        classes
 
 
 ehTravada : Celula -> Bool
