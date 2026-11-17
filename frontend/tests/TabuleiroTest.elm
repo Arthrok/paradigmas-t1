@@ -102,6 +102,52 @@ suite =
                             |> Query.fromHtml
                             |> Query.findAll [ Selector.class "tabuleiro-celula--afetada" ]
                             |> Query.count (Expect.equal 0)
+        , test "dica destaca somente a posição indicada" <|
+            \_ ->
+                comFaseDeCarimbos <|
+                    \fase ->
+                        Tabuleiro.view { config | dica = Just { linha = 0, coluna = 2 } } fase
+                            |> Query.fromHtml
+                            |> Query.findAll [ Selector.class "tabuleiro-celula--dica" ]
+                            |> Query.count (Expect.equal 1)
+        , test "dica mostra um marcador na célula" <|
+            \_ ->
+                comFaseDeCarimbos <|
+                    \fase ->
+                        Tabuleiro.view { config | dica = Just { linha = 0, coluna = 2 } } fase
+                            |> Query.fromHtml
+                            |> Query.find [ Selector.id "celula-0-2" ]
+                            |> Query.has
+                                [ Selector.class "tabuleiro-celula--dica"
+                                , Selector.class "tabuleiro-celula-dica"
+                                , Selector.text "💡"
+                                ]
+        , test "dica e prévia podem aparecer na mesma célula" <|
+            \_ ->
+                comFaseDeCarimbos <|
+                    \fase ->
+                        let
+                            configuracao =
+                                { config
+                                    | dica = Just { linha = 0, coluna = 1 }
+                                    , posicaoEmFoco = Just { linha = 0, coluna = 0 }
+                                }
+                        in
+                        Tabuleiro.view configuracao fase
+                            |> Query.fromHtml
+                            |> Query.find [ Selector.id "celula-0-1" ]
+                            |> Query.has
+                                [ Selector.class "tabuleiro-celula--dica"
+                                , Selector.class "tabuleiro-celula--afetada"
+                                ]
+        , test "sem dica não mostra marcador" <|
+            \_ ->
+                comFaseDeCarimbos <|
+                    \fase ->
+                        Tabuleiro.view config fase
+                            |> Query.fromHtml
+                            |> Query.findAll [ Selector.class "tabuleiro-celula-dica" ]
+                            |> Query.count (Expect.equal 0)
         ]
 
 

@@ -98,11 +98,15 @@ viewCelula config posicoesAfetadas numeroDaLinha numeroDaColuna celula =
         estaEmFoco =
             not estaBloqueada && config.posicaoEmFoco == Just posicao
 
+        temDica =
+            config.dica == Just posicao
+
         classes =
             aparencia.classes
                 |> adicionarClasseSe config.bloqueado "tabuleiro-celula--bloqueada"
                 |> adicionarClasseSe estaAfetada "tabuleiro-celula--afetada"
                 |> adicionarClasseSe estaEmFoco "tabuleiro-celula--foco"
+                |> adicionarClasseSe temDica "tabuleiro-celula--dica"
     in
     div
         [ class (String.join " " ("tabuleiro-celula" :: classes))
@@ -113,7 +117,7 @@ viewCelula config posicoesAfetadas numeroDaLinha numeroDaColuna celula =
         , attribute "data-carimbo" aparencia.carimbo
         , attribute "data-luz" aparencia.luz
         ]
-        [ button
+        (button
             (atributosDoBotao config posicao estaBloqueada)
             [ span
                 [ class "tabuleiro-celula-icone"
@@ -121,7 +125,22 @@ viewCelula config posicoesAfetadas numeroDaLinha numeroDaColuna celula =
                 ]
                 [ text aparencia.icone ]
             ]
+            :: indicadorDaDica temDica
+        )
+
+
+indicadorDaDica : Bool -> List (Html msg)
+indicadorDaDica temDica =
+    if temDica then
+        [ span
+            [ class "tabuleiro-celula-dica"
+            , attribute "aria-hidden" "true"
+            ]
+            [ text "💡" ]
         ]
+
+    else
+        []
 
 
 atributosDoBotao : Config msg -> Posicao -> Bool -> List (Html.Attribute msg)

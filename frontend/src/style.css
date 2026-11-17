@@ -24,7 +24,7 @@
   }
 
   .tabuleiro-celula {
-    @apply flex size-14 items-center justify-center rounded-lg border border-base-content/10 transition select-none;
+    @apply relative flex size-14 items-center justify-center rounded-lg border border-base-content/10 transition select-none;
   }
 
   .tabuleiro-celula-botao {
@@ -61,6 +61,14 @@
 
   .tabuleiro-celula--foco {
     @apply z-10 scale-105 ring-4 ring-info;
+  }
+
+  .tabuleiro-celula--dica {
+    @apply outline-2 outline-offset-2 outline-success;
+  }
+
+  .tabuleiro-celula-dica {
+    @apply pointer-events-none absolute -top-2 -right-2 z-20 flex size-5 items-center justify-center rounded-full bg-success text-xs text-success-content shadow;
   }
 
   .tabuleiro-celula-icone {
