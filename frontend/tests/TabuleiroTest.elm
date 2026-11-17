@@ -2,6 +2,7 @@ module TabuleiroTest exposing (suite)
 
 import Expect exposing (Expectation)
 import Fase exposing (Celula(..), Fase, Forma(..), Luz(..))
+import Html.Attributes as Attributes
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -148,6 +149,75 @@ suite =
                             |> Query.fromHtml
                             |> Query.findAll [ Selector.class "tabuleiro-celula-dica" ]
                             |> Query.count (Expect.equal 0)
+        , test "grid informa nome, dimensões e estado" <|
+            \_ ->
+                comFaseDeCarimbos <|
+                    \fase ->
+                        Tabuleiro.view config fase
+                            |> Query.fromHtml
+                            |> Query.has
+                                [ atributo "aria-label" "Tabuleiro do Carimbó"
+                                , atributo "aria-rowcount" "6"
+                                , atributo "aria-colcount" "6"
+                                , atributo "aria-busy" "false"
+                                ]
+        , test "célula ativa descreve posição, luz e carimbo" <|
+            \_ ->
+                comFaseDeCarimbos <|
+                    \fase ->
+                        botaoNaPosicao config fase 0 2
+                            |> Query.has
+                                [ atributo
+                                    "aria-label"
+                                    "Linha 1, coluna 3, luz acesa, carimbo linha"
+                                ]
+        , test "célula travada possui descrição própria" <|
+            \_ ->
+                comFaseDeCarimbos <|
+                    \fase ->
+                        botaoNaPosicao config fase 0 5
+                            |> Query.has
+                                [ atributo
+                                    "aria-label"
+                                    "Linha 1, coluna 6, célula travada, luz apagada"
+                                ]
+        , test "descrição acessível identifica a dica" <|
+            \_ ->
+                comFaseDeCarimbos <|
+                    \fase ->
+                        botaoNaPosicao { config | dica = Just { linha = 0, coluna = 2 } } fase 0 2
+                            |> Query.has
+                                [ atributo
+                                    "aria-label"
+                                    "Linha 1, coluna 3, luz acesa, carimbo linha, dica sugerida"
+                                ]
+        , test "tabuleiro bloqueado informa que está ocupado" <|
+            \_ ->
+                comFaseDeCarimbos <|
+                    \fase ->
+                        Tabuleiro.view { config | bloqueado = True } fase
+                            |> Query.fromHtml
+                            |> Query.has [ atributo "aria-busy" "true" ]
+        , test "linhas e células usam índices ARIA iniciados em um" <|
+            \_ ->
+                comFaseDeCarimbos <|
+                    \fase ->
+                        let
+                            rendered =
+                                Tabuleiro.view config fase |> Query.fromHtml
+                        in
+                        Expect.all
+                            [ \_ ->
+                                rendered
+                                    |> Query.find [ Selector.id "celula-0-2" ]
+                                    |> Query.has [ atributo "aria-colindex" "3" ]
+                            , \_ ->
+                                rendered
+                                    |> Query.findAll [ Selector.class "tabuleiro-linha" ]
+                                    |> Query.first
+                                    |> Query.has [ atributo "aria-rowindex" "1" ]
+                            ]
+                            ()
         ]
 
 
@@ -204,6 +274,11 @@ botaoNaPosicao configuracao fase linha coluna =
         |> Query.fromHtml
         |> Query.find [ Selector.id ("celula-" ++ String.fromInt linha ++ "-" ++ String.fromInt coluna) ]
         |> Query.find [ Selector.tag "button" ]
+
+
+atributo : String -> String -> Selector.Selector
+atributo nome valor =
+    Selector.attribute (Attributes.attribute nome valor)
 
 
 config : Tabuleiro.Config Msg

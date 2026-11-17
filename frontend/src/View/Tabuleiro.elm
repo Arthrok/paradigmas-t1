@@ -46,6 +46,9 @@ type alias Config msg =
 view : Config msg -> Fase -> Html msg
 view config fase =
     let
+        tamanho =
+            Fase.tamanho fase
+
         posicoesAfetadas =
             if config.bloqueado then
                 []
@@ -61,7 +64,11 @@ view config fase =
     div
         [ class "tabuleiro"
         , attribute "role" "grid"
-        , attribute "data-tamanho" (String.fromInt (Fase.tamanho fase))
+        , attribute "aria-label" "Tabuleiro do Carimbó"
+        , attribute "aria-rowcount" (String.fromInt tamanho)
+        , attribute "aria-colcount" (String.fromInt tamanho)
+        , attribute "aria-busy" (textoBooleano config.bloqueado)
+        , attribute "data-tamanho" (String.fromInt tamanho)
         ]
         (Fase.linhas fase
             |> List.indexedMap (viewLinha config posicoesAfetadas)
@@ -73,6 +80,7 @@ viewLinha config posicoesAfetadas numeroDaLinha celulas =
     div
         [ class "tabuleiro-linha"
         , attribute "role" "row"
+        , attribute "aria-rowindex" (String.fromInt (numeroDaLinha + 1))
         , attribute "data-linha" (String.fromInt numeroDaLinha)
         ]
         (celulas
@@ -101,6 +109,9 @@ viewCelula config posicoesAfetadas numeroDaLinha numeroDaColuna celula =
         temDica =
             config.dica == Just posicao
 
+        descricao =
+            descricaoDaCelula posicao celula temDica
+
         classes =
             aparencia.classes
                 |> adicionarClasseSe config.bloqueado "tabuleiro-celula--bloqueada"
@@ -112,13 +123,14 @@ viewCelula config posicoesAfetadas numeroDaLinha numeroDaColuna celula =
         [ class (String.join " " ("tabuleiro-celula" :: classes))
         , id (idDaCelula numeroDaLinha numeroDaColuna)
         , attribute "role" "gridcell"
+        , attribute "aria-colindex" (String.fromInt (numeroDaColuna + 1))
         , attribute "data-linha" (String.fromInt numeroDaLinha)
         , attribute "data-coluna" (String.fromInt numeroDaColuna)
         , attribute "data-carimbo" aparencia.carimbo
         , attribute "data-luz" aparencia.luz
         ]
         (button
-            (atributosDoBotao config posicao estaBloqueada)
+            (atributosDoBotao config posicao estaBloqueada descricao)
             [ span
                 [ class "tabuleiro-celula-icone"
                 , attribute "aria-hidden" "true"
@@ -143,11 +155,12 @@ indicadorDaDica temDica =
         []
 
 
-atributosDoBotao : Config msg -> Posicao -> Bool -> List (Html.Attribute msg)
-atributosDoBotao config posicao estaBloqueada =
+atributosDoBotao : Config msg -> Posicao -> Bool -> String -> List (Html.Attribute msg)
+atributosDoBotao config posicao estaBloqueada descricao =
     [ class "tabuleiro-celula-botao"
     , type_ "button"
     , disabled estaBloqueada
+    , attribute "aria-label" descricao
     ]
         ++ (if estaBloqueada then
                 []
@@ -158,6 +171,45 @@ atributosDoBotao config posicao estaBloqueada =
                 , onMouseLeave (config.aoPassar Nothing)
                 ]
            )
+
+
+descricaoDaCelula : Posicao -> Celula -> Bool -> String
+descricaoDaCelula posicao celula temDica =
+    let
+        coordenadas =
+            "Linha "
+                ++ String.fromInt (posicao.linha + 1)
+                ++ ", coluna "
+                ++ String.fromInt (posicao.coluna + 1)
+
+        descricao =
+            case celula of
+                Ativa forma estadoDaLuz ->
+                    coordenadas
+                        ++ ", luz "
+                        ++ nomeDaLuz estadoDaLuz
+                        ++ ", carimbo "
+                        ++ Tuple.first (dadosDaForma forma)
+
+                Travada estadoDaLuz ->
+                    coordenadas
+                        ++ ", célula travada, luz "
+                        ++ nomeDaLuz estadoDaLuz
+    in
+    if temDica then
+        descricao ++ ", dica sugerida"
+
+    else
+        descricao
+
+
+textoBooleano : Bool -> String
+textoBooleano valor =
+    if valor then
+        "true"
+
+    else
+        "false"
 
 
 adicionarClasseSe : Bool -> String -> List String -> List String
