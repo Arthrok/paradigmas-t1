@@ -1,7 +1,7 @@
 module TabuleiroTest exposing (suite)
 
 import Expect exposing (Expectation)
-import Fase exposing (Celula(..), Luz(..))
+import Fase exposing (Celula(..), Fase, Forma(..), Luz(..))
 import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector
@@ -21,6 +21,28 @@ suite =
             \_ -> contarCelulas 5
         , test "renderiza as 36 células de uma fase 6x6" <|
             \_ -> contarCelulas 6
+        , test "representa os cinco carimbos e a trava" <|
+            \_ ->
+                comFaseDeCarimbos <|
+                    \fase ->
+                        Expect.all
+                            [ \_ -> celulaTem fase 0 0 "tabuleiro-celula--cruz" "✚"
+                            , \_ -> celulaTem fase 0 1 "tabuleiro-celula--xis" "✖"
+                            , \_ -> celulaTem fase 0 2 "tabuleiro-celula--linha" "━"
+                            , \_ -> celulaTem fase 0 3 "tabuleiro-celula--coluna" "┃"
+                            , \_ -> celulaTem fase 0 4 "tabuleiro-celula--bloco" "▣"
+                            , \_ -> celulaTem fase 0 5 "tabuleiro-celula--travada" "🔒"
+                            ]
+                            ()
+        , test "diferencia luz acesa e apagada" <|
+            \_ ->
+                comFaseDeCarimbos <|
+                    \fase ->
+                        Expect.all
+                            [ \_ -> celulaTem fase 0 0 "tabuleiro-celula--acesa" "✚"
+                            , \_ -> celulaTem fase 0 1 "tabuleiro-celula--apagada" "✖"
+                            ]
+                            ()
         ]
 
 
@@ -35,6 +57,40 @@ contarCelulas n =
 
         Err erro ->
             Expect.fail erro
+
+
+comFaseDeCarimbos : (Fase -> Expectation) -> Expectation
+comFaseDeCarimbos verificar =
+    let
+        primeiraLinha =
+            [ Ativa Cruz Acesa
+            , Ativa Xis Apagada
+            , Ativa Linha Acesa
+            , Ativa Coluna Apagada
+            , Ativa Bloco Acesa
+            , Travada Apagada
+            ]
+
+        demaisLinhas =
+            List.repeat 5 (List.repeat 6 (Ativa Cruz Apagada))
+    in
+    case Fase.criar (primeiraLinha :: demaisLinhas) of
+        Ok fase ->
+            verificar fase
+
+        Err erro ->
+            Expect.fail erro
+
+
+celulaTem : Fase -> Int -> Int -> String -> String -> Expectation
+celulaTem fase linha coluna classe icone =
+    Tabuleiro.view config fase
+        |> Query.fromHtml
+        |> Query.find [ Selector.id ("celula-" ++ String.fromInt linha ++ "-" ++ String.fromInt coluna) ]
+        |> Query.has
+            [ Selector.class classe
+            , Selector.text icone
+            ]
 
 
 config : Tabuleiro.Config Msg

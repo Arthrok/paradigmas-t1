@@ -21,4 +21,32 @@
   .app-title {
     @apply text-4xl font-bold;
   }
+
+  .tabuleiro {
+    @apply flex flex-col gap-1 rounded-box bg-base-100 p-2 shadow-lg;
+  }
+
+  .tabuleiro-linha {
+    @apply flex gap-1;
+  }
+
+  .tabuleiro-celula {
+    @apply flex size-14 items-center justify-center rounded-lg border border-base-content/10 select-none;
+  }
+
+  .tabuleiro-celula--acesa {
+    @apply bg-warning text-warning-content shadow-sm;
+  }
+
+  .tabuleiro-celula--apagada {
+    @apply bg-base-300 text-base-content;
+  }
+
+  .tabuleiro-celula--travada {
+    @apply border-neutral ring-2 ring-neutral/60 ring-inset;
+  }
+
+  .tabuleiro-celula-icone {
+    @apply font-mono text-2xl leading-none font-bold;
+  }
 }
