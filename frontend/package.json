@@ -5,10 +5,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "postinstall": "patch-package",
     "preview": "vite preview",
     "test": "elm-test",
     "format": "elm-format src tests --yes",
     "lint": "elm-format src tests --validate"
+    
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
@@ -16,6 +18,7 @@
     "elm": "^0.19.2-0",
     "elm-format": "^0.8.8",
     "elm-test": "^0.19.2-1",
+    "patch-package": "^8.0.1",
     "tailwindcss": "^4.3.3",
     "vite": "^8.3.1",
     "vite-plugin-elm": "^3.0.1"
