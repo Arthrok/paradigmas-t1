@@ -1,12 +1,13 @@
-module Main exposing (main)
+module Main exposing (Ajuda(..), Jogo, Model, Modo(..), Msg(..), Partida(..), init, main, mensagemVitoria, update)
 
 import Api
 import Browser
 import Fase
 import Historico
 import Html exposing (Html, button, div, h1, h2, main_, p, text)
-import Html.Attributes exposing (class, disabled)
+import Html.Attributes exposing (attribute, class, disabled)
 import Html.Events exposing (onClick)
+import Time
 import View.Tabuleiro as Tabuleiro
 
 
@@ -162,8 +163,8 @@ update msg model =
         Clicou posicao ->
             case model.partida of
                 Jogando jogo ->
-                    case Fase.celula posicao (Historico.atual jogo.historico) of
-                        Just (Fase.Ativa _ _) ->
+                    case ( estaAnimando jogo, Fase.celula posicao (Historico.atual jogo.historico) ) of
+                        ( False, Just (Fase.Ativa _ _) ) ->
                             let
                                 novaFase =
                                     Fase.apertar posicao (Historico.atual jogo.historico)
@@ -369,8 +370,48 @@ update msg model =
             )
 
         PassoAnimacao ->
-            -- A animacao automatica pode ser implementada posteriormente.
-            ( model, Cmd.none )
+            case ( model.partida, model.modo ) of
+                ( Jogando jogo, Jogar ) ->
+                    case jogo.ajuda of
+                        AnimandoSolucao (posicao :: resto) ->
+                            let
+                                novaFase =
+                                    Fase.apertar posicao (Historico.atual jogo.historico)
+
+                                novoJogo =
+                                    { jogo
+                                        | historico = Historico.avancar novaFase jogo.historico
+                                        , cliques = jogo.cliques + 1
+                                        , ajuda =
+                                            if List.isEmpty resto then
+                                                SemAjuda
+
+                                            else
+                                                AnimandoSolucao resto
+                                    }
+                            in
+                            ( { model
+                                | partida =
+                                    if Fase.resolvida novaFase then
+                                        Vencida { novoJogo | ajuda = SemAjuda }
+
+                                    else
+                                        Jogando novoJogo
+                                , posicaoEmFoco = Nothing
+                              }
+                            , Cmd.none
+                            )
+
+                        AnimandoSolucao [] ->
+                            ( { model | partida = Jogando { jogo | ajuda = SemAjuda } }
+                            , Cmd.none
+                            )
+
+                        _ ->
+                            ( model, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
 
         MudouModo novoModo ->
             ( { model
@@ -467,6 +508,38 @@ update msg model =
 -- FUNCOES AUXILIARES
 
 
+estaAnimando : Jogo -> Bool
+estaAnimando jogo =
+    case jogo.ajuda of
+        AnimandoSolucao _ ->
+            True
+
+        _ ->
+            False
+
+
+{-| Texto da tela de vitória.
+-}
+mensagemVitoria : Int -> Int -> String
+mensagemVitoria cliques minimo =
+    "Você fez em "
+        ++ String.fromInt cliques
+        ++ (if cliques == 1 then
+                " clique"
+
+            else
+                " cliques"
+           )
+        ++ ", o mínimo era "
+        ++ String.fromInt minimo
+        ++ (if cliques <= minimo then
+                ". Perfeito!"
+
+            else
+                "."
+           )
+
+
 reiniciarJogo : Jogo -> Partida
 reiniciarJogo jogo =
     Jogando
@@ -519,6 +592,9 @@ configurarTabuleiro model =
             || (case model.partida of
                     Gerando ->
                         True
+
+                    Jogando jogo ->
+                        estaAnimando jogo
 
                     _ ->
                         False
@@ -603,43 +679,65 @@ viewJogo model jogo venceu =
             (configurarTabuleiro model)
             faseAtual
         , viewControles model jogo venceu
+        , if venceu then
+            viewVitoria jogo
+
+          else
+            text ""
         , viewAjuda jogo.ajuda
+        ]
+
+
+viewVitoria : Jogo -> Html Msg
+viewVitoria jogo =
+    div [ class "app-vitoria", attribute "role" "status" ]
+        [ p [ class "app-vitoria-texto" ] [ text (mensagemVitoria jogo.cliques jogo.minimo) ]
+        , button
+            [ class "controle-botao botao-principal"
+            , onClick NovaFase
+            ]
+            [ text "Nova fase" ]
         ]
 
 
 viewControles : Model -> Jogo -> Bool -> Html Msg
 viewControles model jogo venceu =
+    let
+        ocupado =
+            estaAnimando jogo
+    in
     div [ class "app-controles" ]
         [ button
             [ class "controle-botao botao-secundario"
             , onClick Desfazer
-            , disabled (not (Historico.podeDesfazer jogo.historico))
+            , disabled (ocupado || not (Historico.podeDesfazer jogo.historico))
             ]
             [ text "Desfazer" ]
         , button
             [ class "controle-botao botao-secundario"
             , onClick Refazer
             , disabled
-                (venceu || not (Historico.podeRefazer jogo.historico))
+                (ocupado || venceu || not (Historico.podeRefazer jogo.historico))
             ]
             [ text "Refazer" ]
         , button
             [ class "controle-botao botao-perigo"
             , onClick Reiniciar
+            , disabled ocupado
             ]
             [ text "Reiniciar" ]
         , button
             [ class "controle-botao botao-dica"
             , onClick PedirDica
-            , disabled venceu
+            , disabled (ocupado || venceu)
             ]
             [ text "Pedir dica" ]
         , button
             [ class "controle-botao botao-solucao"
             , onClick PedirSolucao
-            , disabled venceu
+            , disabled (ocupado || venceu)
             ]
-            [ text "Ver solução" ]
+            [ text "Mostrar solução" ]
         , button
             [ class "controle-botao botao-verificar"
             , onClick Verificar
@@ -702,9 +800,12 @@ viewAjuda ajuda =
             AnimandoSolucao cliques ->
                 [ p []
                     [ text
-                        ("A solução possui "
-                            ++ String.fromInt (List.length cliques)
-                            ++ " movimentos."
+                        (case List.length cliques of
+                            1 ->
+                                "Mostrando a solução: falta 1 passo."
+
+                            n ->
+                                "Mostrando a solução: faltam " ++ String.fromInt n ++ " passos."
                         )
                     ]
                 ]
@@ -740,8 +841,17 @@ viewAjuda ajuda =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Sub.none
+subscriptions model =
+    case model.partida of
+        Jogando jogo ->
+            if estaAnimando jogo then
+                Time.every 700 (\_ -> PassoAnimacao)
+
+            else
+                Sub.none
+
+        _ ->
+            Sub.none
 
 
 main : Program () Model Msg
