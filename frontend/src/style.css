@@ -136,3 +136,158 @@
     }
   }
 }
+
+/* Área que organiza os controles do jogo */
+.app-controles {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    max-width: 850px;
+    margin: 28px auto;
+    padding: 16px;
+}
+
+/* Estilo geral dos botões */
+.controle-botao {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+
+    min-width: 125px;
+    min-height: 44px;
+    padding: 12px 20px;
+
+    border: 2px solid transparent;
+    border-radius: 9px;
+
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.2s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Efeito ao passar o mouse */
+.controle-botao:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Efeito ao pressionar */
+.controle-botao:active:not(:disabled) {
+    transform: translateY(1px);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Destaque de acessibilidade ao navegar pelo teclado */
+.controle-botao:focus-visible {
+    outline: 3px solid #facc15;
+    outline-offset: 3px;
+}
+
+/* Botões desabilitados */
+.controle-botao:disabled {
+    background-color: #9ca3af;
+    border-color: #9ca3af;
+    color: #e5e7eb;
+    cursor: not-allowed;
+    opacity: 0.65;
+    box-shadow: none;
+    transform: none;
+}
+
+/* Desfazer e refazer */
+.botao-secundario {
+    background-color: #475569;
+    border-color: #334155;
+}
+
+.botao-secundario:hover:not(:disabled) {
+    background-color: #334155;
+}
+
+/* Reiniciar */
+.botao-perigo {
+    background-color: #dc2626;
+    border-color: #b91c1c;
+}
+
+.botao-perigo:hover:not(:disabled) {
+    background-color: #b91c1c;
+}
+
+/* Pedir dica */
+.botao-dica {
+    background-color: #d97706;
+    border-color: #b45309;
+}
+
+.botao-dica:hover:not(:disabled) {
+    background-color: #b45309;
+}
+
+/* Ver solução */
+.botao-solucao {
+    background-color: #15803d;
+    border-color: #166534;
+}
+
+.botao-solucao:hover:not(:disabled) {
+    background-color: #166534;
+}
+
+/* Verificar fase */
+.botao-verificar {
+    background-color: #0f766e;
+    border-color: #115e59;
+}
+
+.botao-verificar:hover:not(:disabled) {
+    background-color: #115e59;
+}
+
+/* Nova fase */
+.botao-principal {
+    background-color: #2563eb;
+    border-color: #1d4ed8;
+}
+
+.botao-principal:hover:not(:disabled) {
+    background-color: #1d4ed8;
+}
+
+/* Alternar modo de jogo e edição */
+.botao-edicao {
+    background-color: #7c3aed;
+    border-color: #6d28d9;
+}
+
+.botao-edicao:hover:not(:disabled) {
+    background-color: #6d28d9;
+}
+
+/* Ajustes para telas pequenas */
+@media (max-width: 600px) {
+    .app-controles {
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .controle-botao {
+        flex: 1 1 130px;
+        min-width: 0;
+        padding: 11px 12px;
+        font-size: 13px;
+    }
+}

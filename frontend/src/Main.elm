@@ -608,39 +608,59 @@ viewControles : Model -> Jogo -> Bool -> Html Msg
 viewControles model jogo venceu =
     div [ class "app-controles" ]
         [ button
-            [ onClick Desfazer
+            [ class "controle-botao botao-secundario"
+            , onClick Desfazer
             , disabled (not (Historico.podeDesfazer jogo.historico))
             ]
             [ text "Desfazer" ]
 
         , button
-            [ onClick Refazer
+            [ class "controle-botao botao-secundario"
+            , onClick Refazer
             , disabled
                 (venceu || not (Historico.podeRefazer jogo.historico))
             ]
             [ text "Refazer" ]
 
-        , button [ onClick Reiniciar ]
+        , button
+            [ class "controle-botao botao-perigo"
+            , onClick Reiniciar
+            ]
             [ text "Reiniciar" ]
 
-        , button [ onClick PedirDica, disabled venceu ]
+        , button
+            [ class "controle-botao botao-dica"
+            , onClick PedirDica
+            , disabled venceu
+            ]
             [ text "Pedir dica" ]
 
-        , button [ onClick PedirSolucao, disabled venceu ]
+        , button
+            [ class "controle-botao botao-solucao"
+            , onClick PedirSolucao
+            , disabled venceu
+            ]
             [ text "Ver solução" ]
 
-        , button [ onClick Verificar, disabled venceu ]
+        , button
+            [ class "controle-botao botao-verificar"
+            , onClick Verificar
+            , disabled venceu
+            ]
             [ text "Verificar fase" ]
 
-        , button [ onClick NovaFase ]
+        , button
+            [ class "controle-botao botao-principal"
+            , onClick NovaFase
+            ]
             [ text "Nova fase" ]
 
         , button
-            [ onClick
+            [ class "controle-botao botao-edicao"
+            , onClick
                 (MudouModo
                     (if model.modo == Jogar then
                         Editar
-
                      else
                         Jogar
                     )
@@ -649,13 +669,11 @@ viewControles model jogo venceu =
             [ text
                 (if model.modo == Jogar then
                     "Modo de edição"
-
                  else
                     "Modo de jogo"
                 )
             ]
         ]
-
 
 viewAjuda : Ajuda -> Html Msg
 viewAjuda ajuda =
