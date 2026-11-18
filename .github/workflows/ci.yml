@@ -19,9 +19,21 @@ jobs:
 
       - name: Instalar SWI-Prolog (PPA oficial, versão recente)
         run: |
-          sudo add-apt-repository -y ppa:swi-prolog/stable
-          sudo apt-get update
-          sudo apt-get install -y swi-prolog-nox
+          set -e
+          for tentativa in 1 2 3 4 5; do
+            echo "Tentativa ${tentativa}/5 de instalar SWI-Prolog"
+            if sudo add-apt-repository -y ppa:swi-prolog/stable &&
+               sudo apt-get update &&
+               sudo apt-get install -y swi-prolog-nox; then
+              break
+            fi
+            if [ "${tentativa}" -eq 5 ]; then
+              exit 1
+            fi
+            sudo apt-get clean
+            sudo rm -rf /var/lib/apt/lists/*
+            sleep 30
+          done
           swipl --version
 
       - uses: actions/setup-node@v4
