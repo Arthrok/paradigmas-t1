@@ -82,7 +82,7 @@ tamanhoMinimo =
 
 tamanhoMaximo : Int
 tamanhoMaximo =
-    6
+    7
 
 
 

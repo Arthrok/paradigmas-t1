@@ -23,7 +23,7 @@ jogo. As opções são o Elm (cliente) ou o Prolog (servidor, com
 - Desfazer/refazer sai de graça no Elm: o histórico é uma lista de fases
   imutáveis.
 - Dá para testar cada predicado isoladamente no `swipl`, sem preparar estado.
-- Cada requisição manda a fase inteira (≤ 6x6, então uns poucos KB, o que é
+- Cada requisição manda a fase inteira (≤ 7x7, então uns poucos KB, o que é
   irrelevante).
 - O clique precisa ser aplicado no Elm para a resposta ser instantânea (ver
   ADR 0006).

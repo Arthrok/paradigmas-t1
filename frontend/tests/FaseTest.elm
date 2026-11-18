@@ -157,7 +157,7 @@ criacao =
                     |> Expect.err
         , test "rejeita tabuleiro grande demais" <|
             \_ ->
-                Fase.criar (List.repeat 7 (List.repeat 7 (Travada Apagada)))
+                Fase.criar (List.repeat 8 (List.repeat 8 (Travada Apagada)))
                     |> Expect.err
         , test "rejeita tabuleiro que não é quadrado" <|
             \_ ->
@@ -170,7 +170,7 @@ criacao =
 -- FUZZERS E AUXILIARES
 
 
-{-| Uma fase válida qualquer: tamanho de 4 a 6, células sorteadas.
+{-| Uma fase válida qualquer: tamanho de 4 a 7, células sorteadas.
 -}
 faseAleatoria : Fuzzer Fase
 faseAleatoria =

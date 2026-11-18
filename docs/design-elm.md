@@ -53,8 +53,8 @@ type Celula
 
 type alias Posicao = { linha : Int, coluna : Int }
 
--- Opaco: o construtor não é exportado. Toda Fase existente é NxN, com 4 ≤ N ≤ 6.
--- Uma lista de listas basta: o tabuleiro tem no máximo 6x6.
+-- Opaco: o construtor não é exportado. Toda Fase existente é NxN, com 4 ≤ N ≤ 7.
+-- Uma lista de listas basta: o tabuleiro tem no máximo 7x7.
 type Fase = Fase (List (List Celula))
 
 criar : List (List Celula) -> Result String Fase
@@ -209,6 +209,7 @@ type Msg
   | 4x4 | 3 | 5 | 6 |
   | 5x5 | 4 | 8 | 12 |
   | 6x6 | 5 | 10 | 15 |
+  | 7x7 | 6 | 14 | 20 |
 
 ## Testes (`elm-test`)
 
@@ -217,7 +218,7 @@ type Msg
 | `apertar p (apertar p f) == f` para todo `p`, `f` | fuzz |
 | `apertar a (apertar b f) == apertar b (apertar a f)` | fuzz |
 | apertar uma `Travada` não muda nada | fuzz |
-| `criar` rejeita matriz não quadrada e tamanho fora de 4..6 | unitário |
+| `criar` rejeita matriz não quadrada e tamanho fora de 4..7 | unitário |
 | cada `Forma` afeta exatamente as células da tabela | unitário |
 | `desfazer (avancar x h)` volta para `atual h` | fuzz |
 | decoder de `Fase` aceita o exemplo de `docs/api.md` e rejeita carimbo inválido | unitário |

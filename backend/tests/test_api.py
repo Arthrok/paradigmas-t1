@@ -46,7 +46,7 @@ def test_gerar():
 
 
 def test_gerar_rejeita_tamanho_fora_da_faixa():
-    pedido = {"tamanho": 7, "dificuldade": 6, "variante": "carimbos"}
+    pedido = {"tamanho": 8, "dificuldade": 6, "variante": "carimbos"}
     assert client.post("/api/gerar", json=pedido).status_code == 422
 
 

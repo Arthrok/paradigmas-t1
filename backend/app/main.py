@@ -20,7 +20,7 @@ from app import prolog
 app = FastAPI(title="Carimbó (Prolog + Elm)")
 
 TAMANHO_MINIMO = 4
-TAMANHO_MAXIMO = 6
+TAMANHO_MAXIMO = 7
 
 # Mensagens que o Elm mostra na tela quando a resposta é 422.
 NAO_GEROU = "Não foi possível gerar uma fase com essa dificuldade."

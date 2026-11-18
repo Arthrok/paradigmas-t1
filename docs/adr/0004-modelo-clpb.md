@@ -43,7 +43,6 @@ Células travadas têm `A[c] = 0`.
   seção 5.3 do relatório.
 - O custo é ~0,1–0,4 s por chamada no 5x5, dominado pela montagem das
   restrições. A UI precisa de estado de carregamento.
-- Limite de tamanho suportado: **4x4 a 6x6**. Na calibração do gerador (15/11), o modo
-  `classico` não gerou nenhuma fase 7x7 em 5 s: com só cruzes, as restrições se
-  sobrepõem muito e o modelo fica pesado. Com carimbos o 7x7 funciona, mas
-  limitamos todas as variantes a 6x6 para o jogo ser previsível.
+- Limite de tamanho suportado: **4x4 a 7x7**. O gerador usa níveis calibrados
+  para manter as três variantes dentro do limite de tempo esperado; o 7x7
+  pode ser mais pesado no modo `classico`, que usa apenas cruzes.

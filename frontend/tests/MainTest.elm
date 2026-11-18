@@ -1,9 +1,10 @@
 module MainTest exposing (suite)
 
+import Api
 import Editor exposing (Ferramenta(..))
 import Expect
 import Fase exposing (Celula(..), Forma(..), Luz(..))
-import Main exposing (Ajuda(..), Modo(..), Msg(..), Partida(..))
+import Main exposing (Ajuda(..), Modo(..), Msg(..), Nivel(..), Partida(..))
 import Test exposing (Test, describe, test)
 
 
@@ -26,6 +27,30 @@ suite =
                         |> .partida
                         |> ehVencida
                         |> Expect.equal True
+            ]
+        , describe "gerador (#16)"
+            [ test "nível fácil traduz para a dificuldade do tamanho" <|
+                \_ ->
+                    inicial
+                        |> atualizar (MudouNivel Facil)
+                        |> .config
+                        |> .dificuldade
+                        |> Expect.equal 4
+            , test "mudar tamanho preserva nível e recalcula dificuldade" <|
+                \_ ->
+                    inicial
+                        |> atualizar (MudouNivel Dificil)
+                        |> atualizar (MudouTamanho "7")
+                        |> .config
+                        |> (\config -> ( config.tamanho, config.dificuldade ))
+                        |> Expect.equal ( 7, 20 )
+            , test "selecionar variante atualiza a configuração" <|
+                \_ ->
+                    inicial
+                        |> atualizar (MudouVariante Api.Classico)
+                        |> .config
+                        |> .variante
+                        |> Expect.equal Api.Classico
             ]
         , describe "animação da solução (#18)"
             [ test "SolucaoChegou inicia a animação" <|

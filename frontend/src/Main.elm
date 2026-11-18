@@ -1,13 +1,13 @@
-module Main exposing (Ajuda(..), Jogo, Model, Modo(..), Msg(..), Partida(..), faseDoJogo, init, main, mensagemVitoria, update)
+module Main exposing (Ajuda(..), Jogo, Model, Modo(..), Msg(..), Nivel(..), Partida(..), faseDoJogo, init, main, mensagemVitoria, update)
 
 import Api
 import Browser
 import Editor exposing (Ferramenta(..))
 import Fase
 import Historico
-import Html exposing (Html, button, div, h1, h2, main_, p, text)
-import Html.Attributes exposing (attribute, class, disabled)
-import Html.Events exposing (onClick)
+import Html exposing (Html, button, div, h1, h2, main_, option, p, select, text)
+import Html.Attributes exposing (attribute, class, disabled, selected, value)
+import Html.Events exposing (onClick, onInput)
 import Time
 import View.Tabuleiro as Tabuleiro
 
@@ -21,6 +21,12 @@ type alias Config =
     , dificuldade : Int
     , variante : Api.Variante
     }
+
+
+type Nivel
+    = Facil
+    | Medio
+    | Dificil
 
 
 configInicial : Config
@@ -83,6 +89,9 @@ type Ajuda
 
 type Msg
     = MudouConfig Config
+    | MudouTamanho String
+    | MudouNivel Nivel
+    | MudouVariante Api.Variante
     | NovaFase
     | FaseGerada (Result String { fase : Fase.Fase, minimo : Int })
     | Clicou Fase.Posicao
@@ -128,6 +137,25 @@ update msg model =
     case msg of
         MudouConfig novaConfig ->
             ( { model | config = novaConfig }
+            , Cmd.none
+            )
+
+        MudouTamanho valor ->
+            ( { model | config = atualizarTamanho valor model.config }
+            , Cmd.none
+            )
+
+        MudouNivel nivel ->
+            ( { model | config = atualizarNivel nivel model.config }
+            , Cmd.none
+            )
+
+        MudouVariante variante ->
+            let
+                novaConfig =
+                    model.config
+            in
+            ( { model | config = { novaConfig | variante = variante } }
             , Cmd.none
             )
 
@@ -492,6 +520,101 @@ update msg model =
 -- FUNCOES AUXILIARES
 
 
+atualizarTamanho : String -> Config -> Config
+atualizarTamanho valor config =
+    case String.toInt valor of
+        Just tamanho ->
+            if tamanho < Fase.tamanhoMinimo || tamanho > Fase.tamanhoMaximo then
+                config
+
+            else
+                { config
+                    | tamanho = tamanho
+                    , dificuldade = dificuldadePara (nivelDaDificuldade config.tamanho config.dificuldade) tamanho
+                }
+
+        Nothing ->
+            config
+
+
+atualizarNivel : Nivel -> Config -> Config
+atualizarNivel nivel config =
+    { config | dificuldade = dificuldadePara nivel config.tamanho }
+
+
+dificuldadePara : Nivel -> Int -> Int
+dificuldadePara nivel tamanho =
+    case ( tamanho, nivel ) of
+        ( 4, Facil ) ->
+            3
+
+        ( 4, Medio ) ->
+            5
+
+        ( 4, Dificil ) ->
+            6
+
+        ( 5, Facil ) ->
+            4
+
+        ( 5, Medio ) ->
+            8
+
+        ( 5, Dificil ) ->
+            12
+
+        ( 6, Facil ) ->
+            5
+
+        ( 6, Medio ) ->
+            10
+
+        ( 6, Dificil ) ->
+            15
+
+        ( 7, Facil ) ->
+            6
+
+        ( 7, Medio ) ->
+            14
+
+        ( 7, Dificil ) ->
+            20
+
+        _ ->
+            8
+
+
+nivelDaDificuldade : Int -> Int -> Nivel
+nivelDaDificuldade tamanho dificuldade =
+    if dificuldade == dificuldadePara Facil tamanho then
+        Facil
+
+    else if dificuldade == dificuldadePara Dificil tamanho then
+        Dificil
+
+    else
+        Medio
+
+
+nivelSelecionado : Config -> Nivel -> Bool
+nivelSelecionado config nivel =
+    dificuldadePara nivel config.tamanho == config.dificuldade
+
+
+nivelDoValor : String -> Nivel
+nivelDoValor valor =
+    case valor of
+        "facil" ->
+            Facil
+
+        "dificil" ->
+            Dificil
+
+        _ ->
+            Medio
+
+
 estaAnimando : Jogo -> Bool
 estaAnimando jogo =
     case jogo.ajuda of
@@ -672,10 +795,9 @@ viewConteudo model =
         SemFase ->
             div [ class "app-inicio" ]
                 [ p [ class "app-inicio-texto" ] [ text "Bem-vindo ao Carimbó!" ]
+                , viewGerador model
                 , div [ class "app-controles" ]
-                    [ button [ class "controle-botao botao-principal", onClick NovaFase ]
-                        [ text "Iniciar jogo" ]
-                    , button [ class "controle-botao botao-edicao", onClick (MudouModo Editar) ]
+                    [ button [ class "controle-botao botao-edicao", onClick (MudouModo Editar) ]
                         [ text "Criar fase" ]
                     ]
                 ]
@@ -687,7 +809,8 @@ viewConteudo model =
 
         FalhaAoGerar erro ->
             div [ class "app-erro" ]
-                [ p [] [ text ("Não foi possível gerar a fase: " ++ erro) ]
+                [ viewGerador model
+                , p [] [ text ("Não foi possível gerar a fase: " ++ erro) ]
                 , button [ onClick NovaFase ]
                     [ text "Tentar novamente" ]
                 ]
@@ -697,6 +820,61 @@ viewConteudo model =
 
         Vencida jogo ->
             viewJogo model jogo True
+
+
+viewGerador : Model -> Html Msg
+viewGerador model =
+    let
+        opcao rotulo valor atual =
+            option [ value valor, selected (valor == atual) ] [ text rotulo ]
+
+        tamanho =
+            String.fromInt model.config.tamanho
+    in
+    div [ class "app-gerador" ]
+        [ div [ class "gerador-campo" ]
+            [ text "Tamanho"
+            , select
+                [ class "gerador-seletor"
+                , onInput MudouTamanho
+                ]
+                (List.map (\n -> opcao (String.fromInt n) (String.fromInt n) tamanho)
+                    (List.range Fase.tamanhoMinimo Fase.tamanhoMaximo)
+                )
+            ]
+        , div [ class "gerador-campo" ]
+            [ text "Nível"
+            , select [ class "gerador-seletor", onInput (MudouNivel << nivelDoValor) ]
+                [ option [ value "facil", selected (nivelSelecionado model.config Facil) ] [ text "Fácil" ]
+                , option [ value "medio", selected (nivelSelecionado model.config Medio) ] [ text "Médio" ]
+                , option [ value "dificil", selected (nivelSelecionado model.config Dificil) ] [ text "Difícil" ]
+                ]
+            ]
+        , div [ class "gerador-campo" ]
+            [ text "Variante"
+            , select
+                [ class "gerador-seletor"
+                , onInput
+                    (\valor ->
+                        case valor of
+                            "classico" ->
+                                MudouVariante Api.Classico
+
+                            "carimbos" ->
+                                MudouVariante Api.Carimbos
+
+                            _ ->
+                                MudouVariante Api.CarimbosTravas
+                    )
+                ]
+                [ option [ value "classico", selected (model.config.variante == Api.Classico) ] [ text "Clássico" ]
+                , option [ value "carimbos", selected (model.config.variante == Api.Carimbos) ] [ text "Carimbos" ]
+                , option [ value "carimbos_travas", selected (model.config.variante == Api.CarimbosTravas) ] [ text "Carimbos + travas" ]
+                ]
+            ]
+        , button [ class "controle-botao botao-principal", onClick NovaFase ]
+            [ text "Nova fase" ]
+        ]
 
 
 viewJogo : Model -> Jogo -> Bool -> Html Msg
@@ -709,7 +887,12 @@ viewJogo model jogo venceu =
             model.modo == Editar
     in
     div [ class "app-jogo" ]
-        [ div [ class "app-status" ]
+        [ if editando then
+            text ""
+
+          else
+            viewGerador model
+        , div [ class "app-status" ]
             (if editando then
                 [ h2 [] [ text "Editor de fases" ]
                 , p [] [ text "Escolha uma ferramenta e clique nas células." ]
@@ -752,11 +935,6 @@ viewVitoria : Jogo -> Html Msg
 viewVitoria jogo =
     div [ class "app-vitoria", attribute "role" "status" ]
         [ p [ class "app-vitoria-texto" ] [ text (mensagemVitoria jogo.cliques jogo.minimo) ]
-        , button
-            [ class "controle-botao botao-principal"
-            , onClick NovaFase
-            ]
-            [ text "Nova fase" ]
         ]
 
 
@@ -850,11 +1028,6 @@ viewControles model jogo venceu =
             , disabled (ocupado || venceu)
             ]
             [ text "Mostrar solução" ]
-        , button
-            [ class "controle-botao botao-principal"
-            , onClick NovaFase
-            ]
-            [ text "Nova fase" ]
         , button
             [ class "controle-botao botao-edicao"
             , onClick (MudouModo Editar)

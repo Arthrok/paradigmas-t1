@@ -26,7 +26,7 @@ repassa para a porta 8000).
 |---|---|
 | `luzes` | matriz NxN de inteiros 0/1, onde 1 = acesa |
 | `carimbos` | matriz NxN com `"cruz"`, `"xis"`, `"linha"`, `"coluna"`, `"bloco"` ou `"trava"` |
-| N | de 4 a 6, e as duas matrizes têm o mesmo N |
+| N | de 4 a 7, e as duas matrizes têm o mesmo N |
 
 ### `Posicao`
 
@@ -62,7 +62,7 @@ Gera uma fase nova que com certeza tem solução, com dificuldade exata.
 
 | Campo | Regra |
 |---|---|
-| `tamanho` | 4 a 6 |
+| `tamanho` | 4 a 7 |
 | `dificuldade` | ≥ 1, é o número mínimo de cliques da fase gerada |
 | `variante` | `"classico"` (só cruz), `"carimbos"` (cinco formas), `"carimbos_travas"` (cinco formas + ~15% de travas) |
 

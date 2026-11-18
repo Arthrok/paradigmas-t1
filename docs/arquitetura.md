@@ -45,7 +45,7 @@ flowchart LR
 
 | Camada | Responsabilidade | Não faz |
 |---|---|---|
-| **Elm** | Guardar o estado, aplicar cliques, desenhar, chamar a API | Resolver, gerar, dar dica |
+| **Elm** | Guardar o estado, aplicar cliques, desenhar, chamar a API e selecionar parâmetros de geração | Resolver, gerar, dar dica |
 | **Python** | Receber HTTP, validar a forma do JSON, chamar o predicado, traduzir erros em 422 | Nenhuma regra de jogo |
 | **Prolog** | Regras, modelo de restrições, as 5 features | Guardar estado, HTTP |
 
