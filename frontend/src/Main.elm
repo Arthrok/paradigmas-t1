@@ -1,7 +1,8 @@
-module Main exposing (Ajuda(..), Jogo, Model, Modo(..), Msg(..), Partida(..), init, main, mensagemVitoria, update)
+module Main exposing (Ajuda(..), Jogo, Model, Modo(..), Msg(..), Partida(..), faseDoJogo, init, main, mensagemVitoria, update)
 
 import Api
 import Browser
+import Editor exposing (Ferramenta(..))
 import Fase
 import Historico
 import Html exposing (Html, button, div, h1, h2, main_, p, text)
@@ -44,6 +45,7 @@ type alias Model =
     , partida : Partida
     , modo : Modo
     , posicaoEmFoco : Maybe Fase.Posicao
+    , ferramenta : Ferramenta
     }
 
 
@@ -69,6 +71,7 @@ type Ajuda
     | PedindoDica
     | Dica Fase.Posicao
     | PedindoSolucao
+    | Verificando
     | AnimandoSolucao (List Fase.Posicao)
     | ErroAjuda String
     | ResultadoVerificacao Int (Maybe Int)
@@ -92,7 +95,9 @@ type Msg
     | SolucaoChegou (Result String { cliques : List Fase.Posicao, minimo : Int })
     | PassoAnimacao
     | MudouModo Modo
-    | EditouCelula Fase.Posicao Fase.Celula
+    | EscolheuFerramenta Ferramenta
+    | AplicouFerramenta Fase.Posicao
+    | JogarFase
     | Verificar
     | VerificacaoChegou (Result String { solucoes : Int, minimo : Maybe Int })
     | PassouSobre (Maybe Fase.Posicao)
@@ -108,6 +113,7 @@ init _ =
       , partida = SemFase
       , modo = Jogar
       , posicaoEmFoco = Nothing
+      , ferramenta = AlternarLuz
       }
     , Cmd.none
     )
@@ -414,50 +420,17 @@ update msg model =
                     ( model, Cmd.none )
 
         MudouModo novoModo ->
-            ( { model
-                | modo = novoModo
-                , posicaoEmFoco = Nothing
-              }
-            , Cmd.none
-            )
+            mudarModo novoModo model
 
-        EditouCelula posicao novaCelula ->
+        EscolheuFerramenta ferramenta ->
+            ( { model | ferramenta = ferramenta }, Cmd.none )
+
+        AplicouFerramenta posicao ->
             case ( model.modo, model.partida ) of
                 ( Editar, Jogando jogo ) ->
-                    let
-                        faseAtual =
-                            Historico.atual jogo.historico
-
-                        linhasAtualizadas =
-                            Fase.linhas faseAtual
-                                |> List.indexedMap
-                                    (\linhaNumero linha ->
-                                        if linhaNumero == posicao.linha then
-                                            linha
-                                                |> List.indexedMap
-                                                    (\colunaNumero celula ->
-                                                        if colunaNumero == posicao.coluna then
-                                                            novaCelula
-
-                                                        else
-                                                            celula
-                                                    )
-
-                                        else
-                                            linha
-                                    )
-                    in
-                    case Fase.criar linhasAtualizadas of
+                    case Editor.aplicar model.ferramenta posicao (Historico.atual jogo.historico) of
                         Ok novaFase ->
-                            ( { model
-                                | partida =
-                                    Jogando
-                                        { jogo
-                                            | historico =
-                                                Historico.avancar novaFase jogo.historico
-                                            , ajuda = SemAjuda
-                                        }
-                              }
+                            ( { model | partida = Jogando (jogoDaFase novaFase 0) }
                             , Cmd.none
                             )
 
@@ -470,13 +443,24 @@ update msg model =
         Verificar ->
             case model.partida of
                 Jogando jogo ->
-                    ( { model
-                        | partida =
-                            Jogando { jogo | ajuda = PedindoSolucao }
-                      }
+                    ( { model | partida = Jogando { jogo | ajuda = Verificando } }
                     , Api.verificar
                         (Historico.atual jogo.historico)
                         VerificacaoChegou
+                    )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        JogarFase ->
+            case ( model.partida, ultimaVerificacao model.partida ) of
+                ( Jogando jogo, Just minimo ) ->
+                    ( { model
+                        | modo = Jogar
+                        , partida = Jogando (jogoDaFase (Historico.atual jogo.historico) minimo)
+                        , posicaoEmFoco = Nothing
+                      }
+                    , Cmd.none
                     )
 
                 _ ->
@@ -516,6 +500,61 @@ estaAnimando jogo =
 
         _ ->
             False
+
+
+jogoDaFase : Fase.Fase -> Int -> Jogo
+jogoDaFase fase minimo =
+    { historico = Historico.iniciar fase
+    , inicial = fase
+    , cliques = 0
+    , minimo = minimo
+    , ajuda = SemAjuda
+    }
+
+
+{-| Mínimo da última verificação, se a fase tem solução.
+-}
+ultimaVerificacao : Partida -> Maybe Int
+ultimaVerificacao partida =
+    case partida of
+        Jogando { ajuda } ->
+            case ajuda of
+                ResultadoVerificacao solucoes minimo ->
+                    Editor.podeJogar solucoes minimo
+
+                _ ->
+                    Nothing
+
+        _ ->
+            Nothing
+
+
+mudarModo : Modo -> Model -> ( Model, Cmd Msg )
+mudarModo novoModo model =
+    let
+        semFoco m =
+            { m | modo = novoModo, posicaoEmFoco = Nothing }
+    in
+    case ( novoModo, model.partida ) of
+        ( Editar, Jogando jogo ) ->
+            ( semFoco { model | partida = Jogando { jogo | ajuda = SemAjuda } }, Cmd.none )
+
+        ( Editar, Vencida jogo ) ->
+            ( semFoco { model | partida = Jogando { jogo | ajuda = SemAjuda } }, Cmd.none )
+
+        ( Editar, _ ) ->
+            case Editor.emBranco model.config.tamanho of
+                Ok fase ->
+                    ( semFoco { model | partida = Jogando (jogoDaFase fase 0) }, Cmd.none )
+
+                Err _ ->
+                    ( model, Cmd.none )
+
+        ( Jogar, Jogando jogo ) ->
+            ( semFoco { model | partida = Jogando { jogo | ajuda = SemAjuda } }, Cmd.none )
+
+        _ ->
+            ( semFoco model, Cmd.none )
 
 
 {-| Texto da tela de vitória.
@@ -573,7 +612,12 @@ atualizarAjuda transformar model =
 
 configurarTabuleiro : Model -> Tabuleiro.Config Msg
 configurarTabuleiro model =
-    { aoClicar = Clicou
+    { aoClicar =
+        if model.modo == Editar then
+            AplicouFerramenta
+
+        else
+            Clicou
     , aoPassar = PassouSobre
     , posicaoEmFoco = model.posicaoEmFoco
     , dica =
@@ -587,18 +631,16 @@ configurarTabuleiro model =
             _ ->
                 Nothing
     , bloqueado =
-        model.modo
-            == Editar
-            || (case model.partida of
-                    Gerando ->
-                        True
+        case model.partida of
+            Gerando ->
+                True
 
-                    Jogando jogo ->
-                        estaAnimando jogo
+            Jogando jogo ->
+                estaAnimando jogo
 
-                    _ ->
-                        False
-               )
+            _ ->
+                False
+    , editor = model.modo == Editar
     }
 
 
@@ -629,9 +671,13 @@ viewConteudo model =
     case model.partida of
         SemFase ->
             div [ class "app-inicio" ]
-                [ p [] [ text "Bem-vindo ao Carimbó!" ]
-                , button [ onClick NovaFase ]
-                    [ text "Iniciar jogo" ]
+                [ p [ class "app-inicio-texto" ] [ text "Bem-vindo ao Carimbó!" ]
+                , div [ class "app-controles" ]
+                    [ button [ class "controle-botao botao-principal", onClick NovaFase ]
+                        [ text "Iniciar jogo" ]
+                    , button [ class "controle-botao botao-edicao", onClick (MudouModo Editar) ]
+                        [ text "Criar fase" ]
+                    ]
                 ]
 
         Gerando ->
@@ -658,28 +704,42 @@ viewJogo model jogo venceu =
     let
         faseAtual =
             Historico.atual jogo.historico
+
+        editando =
+            model.modo == Editar
     in
     div [ class "app-jogo" ]
         [ div [ class "app-status" ]
-            [ h2 []
-                [ text
-                    (if venceu then
-                        "Fase concluída!"
-
-                     else
-                        "Sua partida"
-                    )
+            (if editando then
+                [ h2 [] [ text "Editor de fases" ]
+                , p [] [ text "Escolha uma ferramenta e clique nas células." ]
                 ]
-            , p []
-                [ text ("Cliques: " ++ String.fromInt jogo.cliques) ]
-            , p []
-                [ text ("Mínimo de cliques: " ++ String.fromInt jogo.minimo) ]
-            ]
+
+             else
+                [ h2 []
+                    [ text
+                        (if venceu then
+                            "Fase concluída!"
+
+                         else
+                            "Sua partida"
+                        )
+                    ]
+                , p []
+                    [ text ("Cliques: " ++ String.fromInt jogo.cliques) ]
+                , p []
+                    [ text ("Mínimo de cliques: " ++ String.fromInt jogo.minimo) ]
+                ]
+            )
         , Tabuleiro.view
             (configurarTabuleiro model)
             faseAtual
-        , viewControles model jogo venceu
-        , if venceu then
+        , if editando then
+            viewEditor model
+
+          else
+            viewControles model jogo venceu
+        , if venceu && not editando then
             viewVitoria jogo
 
           else
@@ -697,6 +757,58 @@ viewVitoria jogo =
             , onClick NovaFase
             ]
             [ text "Nova fase" ]
+        ]
+
+
+viewEditor : Model -> Html Msg
+viewEditor model =
+    let
+        ferramenta rotulo valor =
+            button
+                [ class
+                    ("controle-botao botao-secundario"
+                        ++ (if model.ferramenta == valor then
+                                " ferramenta-ativa"
+
+                            else
+                                ""
+                           )
+                    )
+                , attribute "aria-pressed"
+                    (if model.ferramenta == valor then
+                        "true"
+
+                     else
+                        "false"
+                    )
+                , onClick (EscolheuFerramenta valor)
+                ]
+                [ text rotulo ]
+    in
+    div [ class "app-controles app-editor" ]
+        [ ferramenta "Alternar luz" AlternarLuz
+        , ferramenta "✚ Cruz" (Carimbar Fase.Cruz)
+        , ferramenta "✖ Xis" (Carimbar Fase.Xis)
+        , ferramenta "━ Linha" (Carimbar Fase.Linha)
+        , ferramenta "┃ Coluna" (Carimbar Fase.Coluna)
+        , ferramenta "▣ Bloco" (Carimbar Fase.Bloco)
+        , ferramenta "🔒 Trava" Travar
+        , button
+            [ class "controle-botao botao-verificar"
+            , onClick Verificar
+            ]
+            [ text "Verificar" ]
+        , button
+            [ class "controle-botao botao-principal"
+            , onClick JogarFase
+            , disabled (ultimaVerificacao model.partida == Nothing)
+            ]
+            [ text "Jogar esta fase" ]
+        , button
+            [ class "controle-botao botao-edicao"
+            , onClick (MudouModo Jogar)
+            ]
+            [ text "Modo de jogo" ]
         ]
 
 
@@ -739,36 +851,15 @@ viewControles model jogo venceu =
             ]
             [ text "Mostrar solução" ]
         , button
-            [ class "controle-botao botao-verificar"
-            , onClick Verificar
-            , disabled venceu
-            ]
-            [ text "Verificar fase" ]
-        , button
             [ class "controle-botao botao-principal"
             , onClick NovaFase
             ]
             [ text "Nova fase" ]
         , button
             [ class "controle-botao botao-edicao"
-            , onClick
-                (MudouModo
-                    (if model.modo == Jogar then
-                        Editar
-
-                     else
-                        Jogar
-                    )
-                )
+            , onClick (MudouModo Editar)
             ]
-            [ text
-                (if model.modo == Jogar then
-                    "Modo de edição"
-
-                 else
-                    "Modo de jogo"
-                )
-            ]
+            [ text "Modo de edição" ]
         ]
 
 
@@ -797,6 +888,9 @@ viewAjuda ajuda =
             PedindoSolucao ->
                 [ p [] [ text "Calculando solução..." ] ]
 
+            Verificando ->
+                [ p [] [ text "Verificando fase..." ] ]
+
             AnimandoSolucao cliques ->
                 [ p []
                     [ text
@@ -816,20 +910,20 @@ viewAjuda ajuda =
             ResultadoVerificacao solucoes minimo ->
                 [ p []
                     [ text
-                        ("Quantidade de soluções: "
-                            ++ String.fromInt solucoes
-                        )
-                    ]
-                , p []
-                    [ text
-                        ("Mínimo de cliques: "
-                            ++ (case minimo of
-                                    Just valor ->
-                                        String.fromInt valor
+                        (case minimo of
+                            Just valor ->
+                                String.fromInt solucoes
+                                    ++ (if solucoes == 1 then
+                                            " solução"
 
-                                    Nothing ->
-                                        "Não disponível"
-                               )
+                                        else
+                                            " soluções"
+                                       )
+                                    ++ ", mínimo "
+                                    ++ String.fromInt valor
+
+                            Nothing ->
+                                "Sem solução"
                         )
                     ]
                 ]
@@ -862,3 +956,8 @@ main =
         , view = view
         , subscriptions = subscriptions
         }
+
+
+faseDoJogo : Jogo -> Fase.Fase
+faseDoJogo jogo =
+    Historico.atual jogo.historico

@@ -32,7 +32,8 @@ import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
   - `aoPassar`: informa a posição sob o ponteiro, ou `Nothing` ao sair;
   - `posicaoEmFoco`: origem da pré-visualização calculada por `Fase.afetadas`;
   - `dica`: posição sugerida pelo solver;
-  - `bloqueado`: desativa interações durante carregamentos ou animações.
+  - `bloqueado`: desativa interações durante carregamentos ou animações;
+  - `editor`: permite clicar também nas células travadas (modo de edição).
 
 O estado permanece no módulo pai. A view apenas o representa e emite mensagens.
 
@@ -43,6 +44,7 @@ type alias Config msg =
     , posicaoEmFoco : Maybe Posicao
     , dica : Maybe Posicao
     , bloqueado : Bool
+    , editor : Bool
     }
 
 
@@ -107,7 +109,7 @@ viewCelula config posicoesAfetadas numeroDaLinha numeroDaColuna celula =
             { linha = numeroDaLinha, coluna = numeroDaColuna }
 
         estaBloqueada =
-            config.bloqueado || ehTravada celula
+            config.bloqueado || (ehTravada celula && not config.editor)
 
         estaAfetada =
             List.member posicao posicoesAfetadas

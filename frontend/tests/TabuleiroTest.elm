@@ -311,4 +311,5 @@ config =
     , posicaoEmFoco = Nothing
     , dica = Nothing
     , bloqueado = False
+    , editor = False
     }

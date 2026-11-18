@@ -1,5 +1,6 @@
 module MainTest exposing (suite)
 
+import Editor exposing (Ferramenta(..))
 import Expect
 import Fase exposing (Celula(..), Forma(..), Luz(..))
 import Main exposing (Ajuda(..), Modo(..), Msg(..), Partida(..))
@@ -66,6 +67,53 @@ suite =
                     in
                     atualizar PassoAnimacao m
                         |> Expect.equal m
+            ]
+        , describe "editor (#20)"
+            [ test "editar altera a fase com a ferramenta escolhida" <|
+                \_ ->
+                    comFase faseAUmClique
+                        |> atualizar (MudouModo Editar)
+                        |> atualizar (EscolheuFerramenta (Carimbar Bloco))
+                        |> atualizar (AplicouFerramenta centro)
+                        |> celulaEm centro
+                        |> Expect.equal (Just (Ativa Bloco Acesa))
+            , test "criar fase partindo da tela inicial usa fase em branco" <|
+                \_ ->
+                    inicial
+                        |> atualizar (MudouModo Editar)
+                        |> (\m -> ( m.modo, m.partida |> ehJogando ))
+                        |> Expect.equal ( Editar, True )
+            , test "clicar no modo jogar não edita" <|
+                \_ ->
+                    comFase faseAUmClique
+                        |> atualizar (AplicouFerramenta centro)
+                        |> celulaEm centro
+                        |> Expect.equal (Just (Ativa Cruz Acesa))
+            , test "verificar com solução permite jogar a fase" <|
+                \_ ->
+                    comFase faseAUmClique
+                        |> atualizar (MudouModo Editar)
+                        |> atualizar (VerificacaoChegou (Ok { solucoes = 2, minimo = Just 1 }))
+                        |> atualizar JogarFase
+                        |> (\m -> ( m.modo, minimoDe m.partida ))
+                        |> Expect.equal ( Jogar, Just 1 )
+            , test "sem solução não dá para jogar" <|
+                \_ ->
+                    comFase faseAUmClique
+                        |> atualizar (MudouModo Editar)
+                        |> atualizar (VerificacaoChegou (Ok { solucoes = 0, minimo = Nothing }))
+                        |> atualizar JogarFase
+                        |> .modo
+                        |> Expect.equal Editar
+            , test "editar depois de verificar descarta o resultado" <|
+                \_ ->
+                    comFase faseAUmClique
+                        |> atualizar (MudouModo Editar)
+                        |> atualizar (VerificacaoChegou (Ok { solucoes = 2, minimo = Just 1 }))
+                        |> atualizar (AplicouFerramenta centro)
+                        |> .partida
+                        |> ajudaDe
+                        |> Expect.equal (Just SemAjuda)
             ]
         ]
 
@@ -166,6 +214,16 @@ cliquesDe partida =
             Nothing
 
 
+minimoDe : Partida -> Maybe Int
+minimoDe partida =
+    case partida of
+        Jogando jogo ->
+            Just jogo.minimo
+
+        _ ->
+            Nothing
+
+
 ehVencida : Partida -> Bool
 ehVencida partida =
     case partida of
@@ -174,3 +232,23 @@ ehVencida partida =
 
         _ ->
             False
+
+
+ehJogando : Partida -> Bool
+ehJogando partida =
+    case partida of
+        Jogando _ ->
+            True
+
+        _ ->
+            False
+
+
+celulaEm : Fase.Posicao -> Main.Model -> Maybe Celula
+celulaEm posicao model =
+    case model.partida of
+        Jogando jogo ->
+            Fase.celula posicao (Main.faseDoJogo jogo)
+
+        _ ->
+            Nothing
