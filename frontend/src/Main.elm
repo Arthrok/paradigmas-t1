@@ -1,4 +1,3 @@
-
 module Main exposing (main)
 
 import Api
@@ -9,6 +8,7 @@ import Html exposing (Html, button, div, h1, h2, main_, p, text)
 import Html.Attributes exposing (class, disabled)
 import Html.Events exposing (onClick)
 import View.Tabuleiro as Tabuleiro
+
 
 
 -- CONFIGURACAO
@@ -32,6 +32,7 @@ configInicial =
 type Modo
     = Jogar
     | Editar
+
 
 
 -- ESTADO DO JOGO
@@ -72,6 +73,7 @@ type Ajuda
     | ResultadoVerificacao Int (Maybe Int)
 
 
+
 -- MENSAGENS
 
 
@@ -86,15 +88,14 @@ type Msg
     | PedirDica
     | DicaChegou (Result String Fase.Posicao)
     | PedirSolucao
-    | SolucaoChegou
-        (Result String { cliques : List Fase.Posicao, minimo : Int })
+    | SolucaoChegou (Result String { cliques : List Fase.Posicao, minimo : Int })
     | PassoAnimacao
     | MudouModo Modo
     | EditouCelula Fase.Posicao Fase.Celula
     | Verificar
-    | VerificacaoChegou
-        (Result String { solucoes : Int, minimo : Maybe Int })
+    | VerificacaoChegou (Result String { solucoes : Int, minimo : Maybe Int })
     | PassouSobre (Maybe Fase.Posicao)
+
 
 
 -- INICIALIZACAO
@@ -109,6 +110,7 @@ init _ =
       }
     , Cmd.none
     )
+
 
 
 -- UPDATE
@@ -461,6 +463,7 @@ update msg model =
             )
 
 
+
 -- FUNCOES AUXILIARES
 
 
@@ -511,7 +514,8 @@ configurarTabuleiro model =
             _ ->
                 Nothing
     , bloqueado =
-        model.modo == Editar
+        model.modo
+            == Editar
             || (case model.partida of
                     Gerando ->
                         True
@@ -530,6 +534,7 @@ posicaoDaDica ajuda =
 
         _ ->
             Nothing
+
 
 
 -- VIEW
@@ -594,11 +599,9 @@ viewJogo model jogo venceu =
             , p []
                 [ text ("Mínimo de cliques: " ++ String.fromInt jogo.minimo) ]
             ]
-
         , Tabuleiro.view
             (configurarTabuleiro model)
             faseAtual
-
         , viewControles model jogo venceu
         , viewAjuda jogo.ajuda
         ]
@@ -613,7 +616,6 @@ viewControles model jogo venceu =
             , disabled (not (Historico.podeDesfazer jogo.historico))
             ]
             [ text "Desfazer" ]
-
         , button
             [ class "controle-botao botao-secundario"
             , onClick Refazer
@@ -621,46 +623,41 @@ viewControles model jogo venceu =
                 (venceu || not (Historico.podeRefazer jogo.historico))
             ]
             [ text "Refazer" ]
-
         , button
             [ class "controle-botao botao-perigo"
             , onClick Reiniciar
             ]
             [ text "Reiniciar" ]
-
         , button
             [ class "controle-botao botao-dica"
             , onClick PedirDica
             , disabled venceu
             ]
             [ text "Pedir dica" ]
-
         , button
             [ class "controle-botao botao-solucao"
             , onClick PedirSolucao
             , disabled venceu
             ]
             [ text "Ver solução" ]
-
         , button
             [ class "controle-botao botao-verificar"
             , onClick Verificar
             , disabled venceu
             ]
             [ text "Verificar fase" ]
-
         , button
             [ class "controle-botao botao-principal"
             , onClick NovaFase
             ]
             [ text "Nova fase" ]
-
         , button
             [ class "controle-botao botao-edicao"
             , onClick
                 (MudouModo
                     (if model.modo == Jogar then
                         Editar
+
                      else
                         Jogar
                     )
@@ -669,11 +666,13 @@ viewControles model jogo venceu =
             [ text
                 (if model.modo == Jogar then
                     "Modo de edição"
+
                  else
                     "Modo de jogo"
                 )
             ]
         ]
+
 
 viewAjuda : Ajuda -> Html Msg
 viewAjuda ajuda =
@@ -734,6 +733,7 @@ viewAjuda ajuda =
                     ]
                 ]
         )
+
 
 
 -- PROGRAMA PRINCIPAL
