@@ -1,4 +1,4 @@
-module Main exposing (Ajuda(..), Jogo, Model, Modo(..), Msg(..), Partida(..), faseDoJogo, init, main, mensagemVitoria, update)
+module Main exposing (Ajuda(..), Jogo, Model, Modo(..), Msg(..), Partida(..), faseDoJogo, init, main, mensagemVitoria, update, view)
 
 import Api
 import Browser
@@ -318,16 +318,20 @@ update msg model =
                     ( model, Cmd.none )
 
         PedirDica ->
-            case model.partida of
-                Jogando jogo ->
-                    ( { model
-                        | partida =
-                            Jogando { jogo | ajuda = PedindoDica }
-                      }
-                    , Api.dica
-                        (Historico.atual jogo.historico)
-                        DicaChegou
-                    )
+            case ( model.modo, model.partida ) of
+                ( Jogar, Jogando jogo ) ->
+                    if jogo.ajuda == PedindoDica || estaAnimando jogo then
+                        ( model, Cmd.none )
+
+                    else
+                        ( { model
+                            | partida =
+                                Jogando { jogo | ajuda = PedindoDica }
+                          }
+                        , Api.dica
+                            (Historico.atual jogo.historico)
+                            DicaChegou
+                        )
 
                 _ ->
                     ( model, Cmd.none )
@@ -841,7 +845,7 @@ viewControles model jogo venceu =
         , button
             [ class "controle-botao botao-dica"
             , onClick PedirDica
-            , disabled (ocupado || venceu)
+            , disabled (ocupado || venceu || jogo.ajuda == PedindoDica)
             ]
             [ text "Pedir dica" ]
         , button
