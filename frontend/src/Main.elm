@@ -1,12 +1,17 @@
-module Main exposing (main)
+module Main exposing (Ajuda(..), Jogo, Model, Modo(..), Msg(..), Partida(..), faseDoJogo, init, main, mensagemVitoria, update)
 
 import Api
 import Browser
+import Editor exposing (Ferramenta(..))
 import Fase
 import Historico
 import Html exposing (Html, button, div, h1, h2, label, main_, option, p, select, span, text)
 import Html.Attributes exposing (attribute, class, disabled, value)
 import Html.Events exposing (onClick, onInput)
+import Html exposing (Html, button, div, h1, h2, main_, p, text)
+import Html.Attributes exposing (attribute, class, disabled)
+import Html.Events exposing (onClick)
+import Time
 import View.Tabuleiro as Tabuleiro
 
 
@@ -51,6 +56,7 @@ type alias Model =
     , modo : Modo
     , nivel : Nivel
     , posicaoEmFoco : Maybe Fase.Posicao
+    , ferramenta : Ferramenta
     }
 
 
@@ -76,6 +82,7 @@ type Ajuda
     | PedindoDica
     | Dica Fase.Posicao
     | PedindoSolucao
+    | Verificando
     | AnimandoSolucao (List Fase.Posicao)
     | ErroAjuda String
     | ResultadoVerificacao Int (Maybe Int)
@@ -102,7 +109,9 @@ type Msg
     | SolucaoChegou (Result String { cliques : List Fase.Posicao, minimo : Int })
     | PassoAnimacao
     | MudouModo Modo
-    | EditouCelula Fase.Posicao Fase.Celula
+    | EscolheuFerramenta Ferramenta
+    | AplicouFerramenta Fase.Posicao
+    | JogarFase
     | Verificar
     | VerificacaoChegou (Result String { solucoes : Int, minimo : Maybe Int })
     | PassouSobre (Maybe Fase.Posicao)
@@ -119,6 +128,7 @@ init _ =
       , modo = Jogar
       , nivel = Medio
       , posicaoEmFoco = Nothing
+      , ferramenta = AlternarLuz
       }
     , Cmd.none
     )
@@ -229,8 +239,8 @@ update msg model =
         Clicou posicao ->
             case model.partida of
                 Jogando jogo ->
-                    case Fase.celula posicao (Historico.atual jogo.historico) of
-                        Just (Fase.Ativa _ _) ->
+                    case ( estaAnimando jogo, Fase.celula posicao (Historico.atual jogo.historico) ) of
+                        ( False, Just (Fase.Ativa _ _) ) ->
                             let
                                 novaFase =
                                     Fase.apertar posicao (Historico.atual jogo.historico)
@@ -436,54 +446,61 @@ update msg model =
             )
 
         PassoAnimacao ->
-            -- A animacao automatica pode ser implementada posteriormente.
-            ( model, Cmd.none )
+            case ( model.partida, model.modo ) of
+                ( Jogando jogo, Jogar ) ->
+                    case jogo.ajuda of
+                        AnimandoSolucao (posicao :: resto) ->
+                            let
+                                novaFase =
+                                    Fase.apertar posicao (Historico.atual jogo.historico)
 
-        MudouModo novoModo ->
-            ( { model
-                | modo = novoModo
-                , posicaoEmFoco = Nothing
-              }
-            , Cmd.none
-            )
+                                novoJogo =
+                                    { jogo
+                                        | historico = Historico.avancar novaFase jogo.historico
+                                        , cliques = jogo.cliques + 1
+                                        , ajuda =
+                                            if List.isEmpty resto then
+                                                SemAjuda
 
-        EditouCelula posicao novaCelula ->
-            case ( model.modo, model.partida ) of
-                ( Editar, Jogando jogo ) ->
-                    let
-                        faseAtual =
-                            Historico.atual jogo.historico
-
-                        linhasAtualizadas =
-                            Fase.linhas faseAtual
-                                |> List.indexedMap
-                                    (\linhaNumero linha ->
-                                        if linhaNumero == posicao.linha then
-                                            linha
-                                                |> List.indexedMap
-                                                    (\colunaNumero celula ->
-                                                        if colunaNumero == posicao.coluna then
-                                                            novaCelula
-
-                                                        else
-                                                            celula
-                                                    )
-
-                                        else
-                                            linha
-                                    )
-                    in
-                    case Fase.criar linhasAtualizadas of
-                        Ok novaFase ->
+                                            else
+                                                AnimandoSolucao resto
+                                    }
+                            in
                             ( { model
                                 | partida =
-                                    Jogando
-                                        { jogo
-                                            | historico =
-                                                Historico.avancar novaFase jogo.historico
-                                            , ajuda = SemAjuda
-                                        }
+                                    if Fase.resolvida novaFase then
+                                        Vencida { novoJogo | ajuda = SemAjuda }
+
+                                    else
+                                        Jogando novoJogo
+                                , posicaoEmFoco = Nothing
                               }
+                            , Cmd.none
+                            )
+
+                        AnimandoSolucao [] ->
+                            ( { model | partida = Jogando { jogo | ajuda = SemAjuda } }
+                            , Cmd.none
+                            )
+
+                        _ ->
+                            ( model, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        MudouModo novoModo ->
+            mudarModo novoModo model
+
+        EscolheuFerramenta ferramenta ->
+            ( { model | ferramenta = ferramenta }, Cmd.none )
+
+        AplicouFerramenta posicao ->
+            case ( model.modo, model.partida ) of
+                ( Editar, Jogando jogo ) ->
+                    case Editor.aplicar model.ferramenta posicao (Historico.atual jogo.historico) of
+                        Ok novaFase ->
+                            ( { model | partida = Jogando (jogoDaFase novaFase 0) }
                             , Cmd.none
                             )
 
@@ -496,13 +513,24 @@ update msg model =
         Verificar ->
             case model.partida of
                 Jogando jogo ->
-                    ( { model
-                        | partida =
-                            Jogando { jogo | ajuda = PedindoSolucao }
-                      }
+                    ( { model | partida = Jogando { jogo | ajuda = Verificando } }
                     , Api.verificar
                         (Historico.atual jogo.historico)
                         VerificacaoChegou
+                    )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        JogarFase ->
+            case ( model.partida, ultimaVerificacao model.partida ) of
+                ( Jogando jogo, Just minimo ) ->
+                    ( { model
+                        | modo = Jogar
+                        , partida = Jogando (jogoDaFase (Historico.atual jogo.historico) minimo)
+                        , posicaoEmFoco = Nothing
+                      }
+                    , Cmd.none
                     )
 
                 _ ->
@@ -532,6 +560,93 @@ update msg model =
 
 
 -- FUNCOES AUXILIARES
+
+
+estaAnimando : Jogo -> Bool
+estaAnimando jogo =
+    case jogo.ajuda of
+        AnimandoSolucao _ ->
+            True
+
+        _ ->
+            False
+
+
+jogoDaFase : Fase.Fase -> Int -> Jogo
+jogoDaFase fase minimo =
+    { historico = Historico.iniciar fase
+    , inicial = fase
+    , cliques = 0
+    , minimo = minimo
+    , ajuda = SemAjuda
+    }
+
+
+{-| Mínimo da última verificação, se a fase tem solução.
+-}
+ultimaVerificacao : Partida -> Maybe Int
+ultimaVerificacao partida =
+    case partida of
+        Jogando { ajuda } ->
+            case ajuda of
+                ResultadoVerificacao solucoes minimo ->
+                    Editor.podeJogar solucoes minimo
+
+                _ ->
+                    Nothing
+
+        _ ->
+            Nothing
+
+
+mudarModo : Modo -> Model -> ( Model, Cmd Msg )
+mudarModo novoModo model =
+    let
+        semFoco m =
+            { m | modo = novoModo, posicaoEmFoco = Nothing }
+    in
+    case ( novoModo, model.partida ) of
+        ( Editar, Jogando jogo ) ->
+            ( semFoco { model | partida = Jogando { jogo | ajuda = SemAjuda } }, Cmd.none )
+
+        ( Editar, Vencida jogo ) ->
+            ( semFoco { model | partida = Jogando { jogo | ajuda = SemAjuda } }, Cmd.none )
+
+        ( Editar, _ ) ->
+            case Editor.emBranco model.config.tamanho of
+                Ok fase ->
+                    ( semFoco { model | partida = Jogando (jogoDaFase fase 0) }, Cmd.none )
+
+                Err _ ->
+                    ( model, Cmd.none )
+
+        ( Jogar, Jogando jogo ) ->
+            ( semFoco { model | partida = Jogando { jogo | ajuda = SemAjuda } }, Cmd.none )
+
+        _ ->
+            ( semFoco model, Cmd.none )
+
+
+{-| Texto da tela de vitória.
+-}
+mensagemVitoria : Int -> Int -> String
+mensagemVitoria cliques minimo =
+    "Você fez em "
+        ++ String.fromInt cliques
+        ++ (if cliques == 1 then
+                " clique"
+
+            else
+                " cliques"
+           )
+        ++ ", o mínimo era "
+        ++ String.fromInt minimo
+        ++ (if cliques <= minimo then
+                ". Perfeito!"
+
+            else
+                "."
+           )
 
 
 reiniciarJogo : Jogo -> Partida
@@ -567,7 +682,12 @@ atualizarAjuda transformar model =
 
 configurarTabuleiro : Model -> Tabuleiro.Config Msg
 configurarTabuleiro model =
-    { aoClicar = Clicou
+    { aoClicar =
+        if model.modo == Editar then
+            AplicouFerramenta
+
+        else
+            Clicou
     , aoPassar = PassouSobre
     , posicaoEmFoco = model.posicaoEmFoco
     , dica =
@@ -581,15 +701,16 @@ configurarTabuleiro model =
             _ ->
                 Nothing
     , bloqueado =
-        model.modo
-            == Editar
-            || (case model.partida of
-                    Gerando ->
-                        True
+        case model.partida of
+            Gerando ->
+                True
 
-                    _ ->
-                        False
-               )
+            Jogando jogo ->
+                estaAnimando jogo
+
+            _ ->
+                False
+    , editor = model.modo == Editar
     }
 
 
@@ -777,9 +898,13 @@ viewConteudo model =
     case model.partida of
         SemFase ->
             div [ class "app-inicio" ]
-                [ p [] [ text "Bem-vindo ao Carimbó!" ]
-                , button [ onClick NovaFase ]
-                    [ text "Iniciar jogo" ]
+                [ p [ class "app-inicio-texto" ] [ text "Bem-vindo ao Carimbó!" ]
+                , div [ class "app-controles" ]
+                    [ button [ class "controle-botao botao-principal", onClick NovaFase ]
+                        [ text "Iniciar jogo" ]
+                    , button [ class "controle-botao botao-edicao", onClick (MudouModo Editar) ]
+                        [ text "Criar fase" ]
+                    ]
                 ]
 
         Gerando ->
@@ -816,70 +941,152 @@ viewJogo model jogo venceu =
     let
         faseAtual =
             Historico.atual jogo.historico
+
+        editando =
+            model.modo == Editar
     in
     div [ class "app-jogo" ]
         [ div [ class "app-status" ]
-            [ h2 []
-                [ text
-                    (if venceu then
-                        "Fase concluída!"
-
-                     else
-                        "Sua partida"
-                    )
+            (if editando then
+                [ h2 [] [ text "Editor de fases" ]
+                , p [] [ text "Escolha uma ferramenta e clique nas células." ]
                 ]
-            , p []
-                [ text ("Cliques: " ++ String.fromInt jogo.cliques) ]
-            , p []
-                [ text ("Mínimo de cliques: " ++ String.fromInt jogo.minimo) ]
-            ]
+
+             else
+                [ h2 []
+                    [ text
+                        (if venceu then
+                            "Fase concluída!"
+
+                         else
+                            "Sua partida"
+                        )
+                    ]
+                , p []
+                    [ text ("Cliques: " ++ String.fromInt jogo.cliques) ]
+                , p []
+                    [ text ("Mínimo de cliques: " ++ String.fromInt jogo.minimo) ]
+                ]
+            )
         , Tabuleiro.view
             (configurarTabuleiro model)
             faseAtual
-        , viewControles model jogo venceu
+        , if editando then
+            viewEditor model
+
+          else
+            viewControles model jogo venceu
+        , if venceu && not editando then
+            viewVitoria jogo
+
+          else
+            text ""
         , viewAjuda jogo.ajuda
+        ]
+
+
+viewVitoria : Jogo -> Html Msg
+viewVitoria jogo =
+    div [ class "app-vitoria", attribute "role" "status" ]
+        [ p [ class "app-vitoria-texto" ] [ text (mensagemVitoria jogo.cliques jogo.minimo) ]
+        , button
+            [ class "controle-botao botao-principal"
+            , onClick NovaFase
+            ]
+            [ text "Nova fase" ]
+        ]
+
+
+viewEditor : Model -> Html Msg
+viewEditor model =
+    let
+        ferramenta rotulo valor =
+            button
+                [ class
+                    ("controle-botao botao-secundario"
+                        ++ (if model.ferramenta == valor then
+                                " ferramenta-ativa"
+
+                            else
+                                ""
+                           )
+                    )
+                , attribute "aria-pressed"
+                    (if model.ferramenta == valor then
+                        "true"
+
+                     else
+                        "false"
+                    )
+                , onClick (EscolheuFerramenta valor)
+                ]
+                [ text rotulo ]
+    in
+    div [ class "app-controles app-editor" ]
+        [ ferramenta "Alternar luz" AlternarLuz
+        , ferramenta "✚ Cruz" (Carimbar Fase.Cruz)
+        , ferramenta "✖ Xis" (Carimbar Fase.Xis)
+        , ferramenta "━ Linha" (Carimbar Fase.Linha)
+        , ferramenta "┃ Coluna" (Carimbar Fase.Coluna)
+        , ferramenta "▣ Bloco" (Carimbar Fase.Bloco)
+        , ferramenta "🔒 Trava" Travar
+        , button
+            [ class "controle-botao botao-verificar"
+            , onClick Verificar
+            ]
+            [ text "Verificar" ]
+        , button
+            [ class "controle-botao botao-principal"
+            , onClick JogarFase
+            , disabled (ultimaVerificacao model.partida == Nothing)
+            ]
+            [ text "Jogar esta fase" ]
+        , button
+            [ class "controle-botao botao-edicao"
+            , onClick (MudouModo Jogar)
+            ]
+            [ text "Modo de jogo" ]
         ]
 
 
 viewControles : Model -> Jogo -> Bool -> Html Msg
 viewControles model jogo venceu =
+    let
+        ocupado =
+            estaAnimando jogo
+    in
     div [ class "app-controles" ]
         [ button
             [ class "controle-botao botao-secundario"
             , onClick Desfazer
-            , disabled (not (Historico.podeDesfazer jogo.historico))
+            , disabled (ocupado || not (Historico.podeDesfazer jogo.historico))
             ]
             [ text "Desfazer" ]
         , button
             [ class "controle-botao botao-secundario"
             , onClick Refazer
             , disabled
-                (venceu || not (Historico.podeRefazer jogo.historico))
+                (ocupado || venceu || not (Historico.podeRefazer jogo.historico))
             ]
             [ text "Refazer" ]
         , button
             [ class "controle-botao botao-perigo"
             , onClick Reiniciar
+            , disabled ocupado
             ]
             [ text "Reiniciar" ]
         , button
             [ class "controle-botao botao-dica"
             , onClick PedirDica
-            , disabled venceu
+            , disabled (ocupado || venceu)
             ]
             [ text "Pedir dica" ]
         , button
             [ class "controle-botao botao-solucao"
             , onClick PedirSolucao
-            , disabled venceu
+            , disabled (ocupado || venceu)
             ]
-            [ text "Ver solução" ]
-        , button
-            [ class "controle-botao botao-verificar"
-            , onClick Verificar
-            , disabled venceu
-            ]
-            [ text "Verificar fase" ]
+            [ text "Mostrar solução" ]
         , button
             [ class "controle-botao botao-principal"
             , onClick NovaFase
@@ -887,24 +1094,9 @@ viewControles model jogo venceu =
             [ text "Nova fase" ]
         , button
             [ class "controle-botao botao-edicao"
-            , onClick
-                (MudouModo
-                    (if model.modo == Jogar then
-                        Editar
-
-                     else
-                        Jogar
-                    )
-                )
+            , onClick (MudouModo Editar)
             ]
-            [ text
-                (if model.modo == Jogar then
-                    "Modo de edição"
-
-                 else
-                    "Modo de jogo"
-                )
-            ]
+            [ text "Modo de edição" ]
         ]
 
 
@@ -933,12 +1125,18 @@ viewAjuda ajuda =
             PedindoSolucao ->
                 [ p [] [ text "Calculando solução..." ] ]
 
+            Verificando ->
+                [ p [] [ text "Verificando fase..." ] ]
+
             AnimandoSolucao cliques ->
                 [ p []
                     [ text
-                        ("A solução possui "
-                            ++ String.fromInt (List.length cliques)
-                            ++ " movimentos."
+                        (case List.length cliques of
+                            1 ->
+                                "Mostrando a solução: falta 1 passo."
+
+                            n ->
+                                "Mostrando a solução: faltam " ++ String.fromInt n ++ " passos."
                         )
                     ]
                 ]
@@ -949,20 +1147,20 @@ viewAjuda ajuda =
             ResultadoVerificacao solucoes minimo ->
                 [ p []
                     [ text
-                        ("Quantidade de soluções: "
-                            ++ String.fromInt solucoes
-                        )
-                    ]
-                , p []
-                    [ text
-                        ("Mínimo de cliques: "
-                            ++ (case minimo of
-                                    Just valor ->
-                                        String.fromInt valor
+                        (case minimo of
+                            Just valor ->
+                                String.fromInt solucoes
+                                    ++ (if solucoes == 1 then
+                                            " solução"
 
-                                    Nothing ->
-                                        "Não disponível"
-                               )
+                                        else
+                                            " soluções"
+                                       )
+                                    ++ ", mínimo "
+                                    ++ String.fromInt valor
+
+                            Nothing ->
+                                "Sem solução"
                         )
                     ]
                 ]
@@ -974,8 +1172,17 @@ viewAjuda ajuda =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Sub.none
+subscriptions model =
+    case model.partida of
+        Jogando jogo ->
+            if estaAnimando jogo then
+                Time.every 700 (\_ -> PassoAnimacao)
+
+            else
+                Sub.none
+
+        _ ->
+            Sub.none
 
 
 main : Program () Model Msg
@@ -986,3 +1193,8 @@ main =
         , view = view
         , subscriptions = subscriptions
         }
+
+
+faseDoJogo : Jogo -> Fase.Fase
+faseDoJogo jogo =
+    Historico.atual jogo.historico
