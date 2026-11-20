@@ -5,9 +5,9 @@ import Browser
 import Editor exposing (Ferramenta(..))
 import Fase
 import Historico
-import Html exposing (Html, button, div, h1, h2, main_, p, text)
-import Html.Attributes exposing (attribute, class, disabled)
-import Html.Events exposing (onClick)
+import Html exposing (Html, button, div, h1, h2, label, main_, option, p, select, span, text)
+import Html.Attributes exposing (attribute, class, disabled, value)
+import Html.Events exposing (onClick, onInput)
 import Time
 import View.Tabuleiro as Tabuleiro
 
@@ -36,6 +36,12 @@ type Modo
     | Editar
 
 
+type Nivel
+    = Facil
+    | Medio
+    | Dificil
+
+
 
 -- ESTADO DO JOGO
 
@@ -44,6 +50,7 @@ type alias Model =
     { config : Config
     , partida : Partida
     , modo : Modo
+    , nivel : Nivel
     , posicaoEmFoco : Maybe Fase.Posicao
     , ferramenta : Ferramenta
     , idDica : Int
@@ -84,6 +91,9 @@ type Ajuda
 
 type Msg
     = MudouConfig Config
+    | MudouTamanho Int
+    | MudouNivel Nivel
+    | MudouVariante Api.Variante
     | NovaFase
     | FaseGerada (Result String { fase : Fase.Fase, minimo : Int })
     | Clicou Fase.Posicao
@@ -113,6 +123,7 @@ init _ =
     ( { config = configInicial
       , partida = SemFase
       , modo = Jogar
+      , nivel = Medio
       , posicaoEmFoco = Nothing
       , ferramenta = AlternarLuz
       , idDica = 0
@@ -129,6 +140,61 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         MudouConfig novaConfig ->
+            ( { model | config = novaConfig }
+            , Cmd.none
+            )
+
+        MudouTamanho novoTamanho ->
+            if
+                novoTamanho
+                    >= Fase.tamanhoMinimo
+                    && novoTamanho
+                    <= Fase.tamanhoMaximo
+            then
+                let
+                    configAtual =
+                        model.config
+
+                    novaConfig =
+                        { configAtual
+                            | tamanho = novoTamanho
+                            , dificuldade =
+                                dificuldadePara novoTamanho model.nivel
+                        }
+                in
+                ( { model | config = novaConfig }
+                , Cmd.none
+                )
+
+            else
+                ( model, Cmd.none )
+
+        MudouNivel novoNivel ->
+            let
+                configAtual =
+                    model.config
+
+                novaConfig =
+                    { configAtual
+                        | dificuldade =
+                            dificuldadePara configAtual.tamanho novoNivel
+                    }
+            in
+            ( { model
+                | nivel = novoNivel
+                , config = novaConfig
+              }
+            , Cmd.none
+            )
+
+        MudouVariante novaVariante ->
+            let
+                configAtual =
+                    model.config
+
+                novaConfig =
+                    { configAtual | variante = novaVariante }
+            in
             ( { model | config = novaConfig }
             , Cmd.none
             )
@@ -678,14 +744,171 @@ posicaoDaDica ajuda =
             Nothing
 
 
+dificuldadePara : Int -> Nivel -> Int
+dificuldadePara tamanho nivel =
+    case ( tamanho, nivel ) of
+        ( 4, Facil ) ->
+            3
+
+        ( 4, Medio ) ->
+            5
+
+        ( 4, Dificil ) ->
+            6
+
+        ( 5, Facil ) ->
+            4
+
+        ( 5, Medio ) ->
+            8
+
+        ( 5, Dificil ) ->
+            12
+
+        ( 6, Facil ) ->
+            5
+
+        ( 6, Medio ) ->
+            10
+
+        ( 6, Dificil ) ->
+            15
+
+        _ ->
+            8
+
+
+mensagemTamanho : Model -> String -> Msg
+mensagemTamanho model entrada =
+    case String.toInt entrada of
+        Just tamanho ->
+            MudouTamanho tamanho
+
+        Nothing ->
+            MudouTamanho model.config.tamanho
+
+
+mensagemNivel : String -> Msg
+mensagemNivel entrada =
+    case entrada of
+        "facil" ->
+            MudouNivel Facil
+
+        "medio" ->
+            MudouNivel Medio
+
+        "dificil" ->
+            MudouNivel Dificil
+
+        _ ->
+            MudouNivel Medio
+
+
+mensagemVariante : String -> Msg
+mensagemVariante entrada =
+    case entrada of
+        "classico" ->
+            MudouVariante Api.Classico
+
+        "carimbos" ->
+            MudouVariante Api.Carimbos
+
+        "carimbos_travas" ->
+            MudouVariante Api.CarimbosTravas
+
+        _ ->
+            MudouVariante Api.CarimbosTravas
+
+
+nivelParaString : Nivel -> String
+nivelParaString nivel =
+    case nivel of
+        Facil ->
+            "facil"
+
+        Medio ->
+            "medio"
+
+        Dificil ->
+            "dificil"
+
+
+varianteParaString : Api.Variante -> String
+varianteParaString variante =
+    case variante of
+        Api.Classico ->
+            "classico"
+
+        Api.Carimbos ->
+            "carimbos"
+
+        Api.CarimbosTravas ->
+            "carimbos_travas"
+
+
 
 -- VIEW
+
+
+viewConfiguracao : Model -> Html Msg
+viewConfiguracao model =
+    let
+        bloqueado =
+            case model.partida of
+                Gerando ->
+                    True
+
+                _ ->
+                    False
+    in
+    div [ class "configuracao" ]
+        [ label [ class "configuracao-campo" ]
+            [ text "Tamanho"
+            , select
+                [ class "configuracao-select"
+                , value (String.fromInt model.config.tamanho)
+                , disabled bloqueado
+                , onInput (mensagemTamanho model)
+                ]
+                [ option [ value "4" ] [ text "4 x 4" ]
+                , option [ value "5" ] [ text "5 x 5" ]
+                , option [ value "6" ] [ text "6 x 6" ]
+                ]
+            ]
+        , label [ class "configuracao-campo" ]
+            [ text "Nível"
+            , select
+                [ class "configuracao-select"
+                , value (nivelParaString model.nivel)
+                , disabled bloqueado
+                , onInput mensagemNivel
+                ]
+                [ option [ value "facil" ] [ text "Fácil" ]
+                , option [ value "medio" ] [ text "Médio" ]
+                , option [ value "dificil" ] [ text "Difícil" ]
+                ]
+            ]
+        , label [ class "configuracao-campo" ]
+            [ text "Variante"
+            , select
+                [ class "configuracao-select"
+                , value (varianteParaString model.config.variante)
+                , disabled bloqueado
+                , onInput mensagemVariante
+                ]
+                [ option [ value "classico" ] [ text "Clássico" ]
+                , option [ value "carimbos" ] [ text "Carimbos" ]
+                , option [ value "carimbos_travas" ] [ text "Carimbos e travas" ]
+                ]
+            ]
+        ]
 
 
 view : Model -> Html Msg
 view model =
     main_ [ class "app" ]
         [ h1 [ class "app-title" ] [ text "Carimbó" ]
+        , viewConfiguracao model
         , viewConteudo model
         ]
 
@@ -705,14 +928,24 @@ viewConteudo model =
                 ]
 
         Gerando ->
-            div [ class "app-carregando" ]
-                [ p [] [ text "Gerando fase..." ]
+            div
+                [ class "app-carregando"
+                , attribute "role" "status"
+                , attribute "aria-live" "polite"
+                ]
+                [ span [ class "indicador-carregamento" ] []
+                , p [] [ text "Gerando sua nova fase..." ]
+                , p [] [ text "Isso pode levar alguns segundos." ]
                 ]
 
         FalhaAoGerar erro ->
             div [ class "app-erro" ]
-                [ p [] [ text ("Não foi possível gerar a fase: " ++ erro) ]
-                , button [ onClick NovaFase ]
+                [ h2 [] [ text "Não foi possível gerar a fase" ]
+                , p [] [ text erro ]
+                , button
+                    [ class "controle-botao botao-principal"
+                    , onClick NovaFase
+                    ]
                     [ text "Tentar novamente" ]
                 ]
 
