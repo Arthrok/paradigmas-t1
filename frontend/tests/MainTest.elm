@@ -3,6 +3,7 @@ module MainTest exposing (suite)
 import Editor exposing (Ferramenta(..))
 import Expect
 import Fase exposing (Celula(..), Forma(..), Luz(..))
+import Html.Attributes as Attributes
 import Main exposing (Ajuda(..), Modo(..), Msg(..), Partida(..))
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
@@ -123,6 +124,18 @@ suite =
                                 |> Expect.equal (Just (Dica canto))
                         ]
                         ()
+            , test "erro 422 sem solução aparece como aviso e sem destaque" <|
+                \_ ->
+                    comFase faseAUmClique
+                        |> atualizar PedirDica
+                        |> atualizar (DicaChegou 1 (Err "Esta fase não tem solução."))
+                        |> esperarErroDaDica "Esta fase não tem solução."
+            , test "erro 422 de fase resolvida aparece como aviso e sem destaque" <|
+                \_ ->
+                    comFase faseAUmClique
+                        |> atualizar PedirDica
+                        |> atualizar (DicaChegou 1 (Err "A fase já está resolvida."))
+                        |> esperarErroDaDica "A fase já está resolvida."
             ]
         , describe "vitória (#18)"
             [ test "mensagem mostra cliques e mínimo" <|
@@ -384,3 +397,16 @@ esperarDestaques quantidade model =
         |> Query.fromHtml
         |> Query.findAll [ Selector.class "tabuleiro-celula--dica" ]
         |> Query.count (Expect.equal quantidade)
+
+
+esperarErroDaDica : String -> Main.Model -> Expect.Expectation
+esperarErroDaDica mensagem model =
+    Expect.all
+        [ \_ ->
+            Main.view model
+                |> Query.fromHtml
+                |> Query.find [ Selector.attribute (Attributes.attribute "role" "alert") ]
+                |> Query.has [ Selector.text mensagem ]
+        , \_ -> esperarDestaques 0 model
+        ]
+        ()

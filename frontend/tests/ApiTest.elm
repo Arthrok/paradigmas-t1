@@ -1,8 +1,10 @@
 module ApiTest exposing (suite)
 
 import Api
+import Dict
 import Expect
 import Fase
+import Http
 import Json.Decode
 import Json.Encode
 import Test exposing (Test, describe, test)
@@ -32,7 +34,30 @@ suite =
 
                     Err mensagem ->
                         Expect.fail mensagem
+        , test "422 sem solução preserva a mensagem da API" <|
+            \_ ->
+                resposta422 "Esta fase não tem solução."
+                    |> Expect.equal (Ok (Err "Esta fase não tem solução."))
+        , test "422 em fase resolvida preserva a mensagem da API" <|
+            \_ ->
+                resposta422 "A fase já está resolvida."
+                    |> Expect.equal (Ok (Err "A fase já está resolvida."))
         ]
+
+
+resposta422 : String -> Result Http.Error (Result String ())
+resposta422 detalhe =
+    Api.interpretarResposta (Json.Decode.succeed ())
+        (Http.BadStatus_
+            { url = "/api/dica"
+            , statusCode = 422
+            , statusText = "Unprocessable Entity"
+            , headers = Dict.empty
+            }
+            (Json.Encode.object [ ( "detail", Json.Encode.string detalhe ) ]
+                |> Json.Encode.encode 0
+            )
+        )
 
 
 faseJson : String

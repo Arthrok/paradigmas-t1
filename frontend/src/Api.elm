@@ -5,6 +5,7 @@ module Api exposing
     , encodeFase
     , faseDecoder
     , gerar
+    , interpretarResposta
     , resolver
     , verificar
     )

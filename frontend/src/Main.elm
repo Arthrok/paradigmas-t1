@@ -929,7 +929,7 @@ viewAjuda ajuda =
                 ]
 
             ErroAjuda erro ->
-                [ p [] [ text ("Erro: " ++ erro) ] ]
+                [ p [ attribute "role" "alert" ] [ text erro ] ]
 
             ResultadoVerificacao solucoes minimo ->
                 [ p []
