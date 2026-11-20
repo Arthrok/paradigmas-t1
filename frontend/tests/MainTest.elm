@@ -136,6 +136,18 @@ suite =
                         |> atualizar PedirDica
                         |> atualizar (DicaChegou 1 (Err "A fase já está resolvida."))
                         |> esperarErroDaDica "A fase já está resolvida."
+            , test "seguir dicas até apagar todas as luzes leva à vitória" <|
+                \_ ->
+                    comFase faseDeDoisCliques
+                        |> atualizar PedirDica
+                        |> atualizar (DicaChegou 1 (Ok centro))
+                        |> atualizar (Clicou centro)
+                        |> atualizar PedirDica
+                        |> atualizar (DicaChegou 2 (Ok canto))
+                        |> atualizar (Clicou canto)
+                        |> .partida
+                        |> ehVencida
+                        |> Expect.equal True
             ]
         , describe "vitória (#18)"
             [ test "mensagem mostra cliques e mínimo" <|
