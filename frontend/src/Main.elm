@@ -11,7 +11,6 @@ import View.Tabuleiro as Tabuleiro
 
 
 
-
 -- CONFIGURACAO
 
 
