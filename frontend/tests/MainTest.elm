@@ -62,6 +62,67 @@ suite =
                     in
                     atualizar PedirDica model
                         |> Expect.equal model
+            , test "resposta destaca somente a célula sugerida até o próximo clique" <|
+                \_ ->
+                    let
+                        comDica =
+                            comFase faseDeDoisCliques
+                                |> atualizar PedirDica
+                                |> atualizar (DicaChegou 1 (Ok centro))
+                    in
+                    Expect.all
+                        [ \_ ->
+                            Main.view comDica
+                                |> Query.fromHtml
+                                |> Query.find [ Selector.id "celula-1-1" ]
+                                |> Query.has [ Selector.class "tabuleiro-celula--dica" ]
+                        , \_ ->
+                            comDica |> esperarDestaques 1
+                        , \_ ->
+                            comDica
+                                |> atualizar (Clicou centro)
+                                |> esperarDestaques 0
+                        ]
+                        ()
+            , test "resposta atrasada após um clique não restaura a dica" <|
+                \_ ->
+                    let
+                        model =
+                            comFase faseDeDoisCliques
+                                |> atualizar PedirDica
+                                |> atualizar (Clicou centro)
+                                |> atualizar (DicaChegou 1 (Ok centro))
+                    in
+                    Expect.all
+                        [ \_ -> ajudaDe model.partida |> Expect.equal (Just SemAjuda)
+                        , \_ -> esperarDestaques 0 model
+                        ]
+                        ()
+            , test "resposta antiga não substitui o pedido mais recente" <|
+                \_ ->
+                    let
+                        aguardando =
+                            comFase faseDeDoisCliques
+                                |> atualizar PedirDica
+                                |> atualizar (Clicou centro)
+                                |> atualizar PedirDica
+
+                        comRespostaAntiga =
+                            atualizar (DicaChegou 1 (Ok centro)) aguardando
+                    in
+                    Expect.all
+                        [ \_ ->
+                            comRespostaAntiga.partida
+                                |> ajudaDe
+                                |> Expect.equal (Just PedindoDica)
+                        , \_ ->
+                            comRespostaAntiga
+                                |> atualizar (DicaChegou 2 (Ok canto))
+                                |> .partida
+                                |> ajudaDe
+                                |> Expect.equal (Just (Dica canto))
+                        ]
+                        ()
             ]
         , describe "vitória (#18)"
             [ test "mensagem mostra cliques e mínimo" <|
@@ -315,3 +376,11 @@ faseAtual model =
 
         _ ->
             Nothing
+
+
+esperarDestaques : Int -> Main.Model -> Expect.Expectation
+esperarDestaques quantidade model =
+    Main.view model
+        |> Query.fromHtml
+        |> Query.findAll [ Selector.class "tabuleiro-celula--dica" ]
+        |> Query.count (Expect.equal quantidade)
