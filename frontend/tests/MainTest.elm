@@ -3,14 +3,153 @@ module MainTest exposing (suite)
 import Editor exposing (Ferramenta(..))
 import Expect
 import Fase exposing (Celula(..), Forma(..), Luz(..))
+import Html.Attributes as Attributes
 import Main exposing (Ajuda(..), Modo(..), Msg(..), Partida(..))
 import Test exposing (Test, describe, test)
+import Test.Html.Event as Event
+import Test.Html.Query as Query
+import Test.Html.Selector as Selector
 
 
 suite : Test
 suite =
     describe "Main"
-        [ describe "vitória (#18)"
+        [ describe "pedido de dica (#17)"
+            [ test "o botão emite PedirDica durante a partida" <|
+                \_ ->
+                    comFase faseAUmClique
+                        |> Main.view
+                        |> Query.fromHtml
+                        |> Query.find [ Selector.class "botao-dica" ]
+                        |> Event.simulate Event.click
+                        |> Event.expect PedirDica
+            , test "pede dica a partir de uma fase já alterada" <|
+                \_ ->
+                    let
+                        model =
+                            comFase faseDeDoisCliques
+                                |> atualizar (Clicou centro)
+                                |> atualizar PedirDica
+                    in
+                    case faseDeDoisCliques of
+                        Ok fase ->
+                            Expect.all
+                                [ \_ ->
+                                    model.partida
+                                        |> ajudaDe
+                                        |> Expect.equal (Just PedindoDica)
+                                , \_ ->
+                                    faseAtual model
+                                        |> Expect.equal (Just (Fase.apertar centro fase))
+                                ]
+                                ()
+
+                        Err erro ->
+                            Expect.fail erro
+            , test "o botão fica desabilitado enquanto pede dica" <|
+                \_ ->
+                    comFase faseAUmClique
+                        |> atualizar PedirDica
+                        |> Main.view
+                        |> Query.fromHtml
+                        |> Query.find [ Selector.class "botao-dica" ]
+                        |> Query.has [ Selector.disabled True ]
+            , test "pedido repetido mantém o estado enquanto aguarda resposta" <|
+                \_ ->
+                    let
+                        model =
+                            comFase faseAUmClique
+                                |> atualizar PedirDica
+                    in
+                    atualizar PedirDica model
+                        |> Expect.equal model
+            , test "resposta destaca somente a célula sugerida até o próximo clique" <|
+                \_ ->
+                    let
+                        comDica =
+                            comFase faseDeDoisCliques
+                                |> atualizar PedirDica
+                                |> atualizar (DicaChegou 1 (Ok centro))
+                    in
+                    Expect.all
+                        [ \_ ->
+                            Main.view comDica
+                                |> Query.fromHtml
+                                |> Query.find [ Selector.id "celula-1-1" ]
+                                |> Query.has [ Selector.class "tabuleiro-celula--dica" ]
+                        , \_ ->
+                            comDica |> esperarDestaques 1
+                        , \_ ->
+                            comDica
+                                |> atualizar (Clicou centro)
+                                |> esperarDestaques 0
+                        ]
+                        ()
+            , test "resposta atrasada após um clique não restaura a dica" <|
+                \_ ->
+                    let
+                        model =
+                            comFase faseDeDoisCliques
+                                |> atualizar PedirDica
+                                |> atualizar (Clicou centro)
+                                |> atualizar (DicaChegou 1 (Ok centro))
+                    in
+                    Expect.all
+                        [ \_ -> ajudaDe model.partida |> Expect.equal (Just SemAjuda)
+                        , \_ -> esperarDestaques 0 model
+                        ]
+                        ()
+            , test "resposta antiga não substitui o pedido mais recente" <|
+                \_ ->
+                    let
+                        aguardando =
+                            comFase faseDeDoisCliques
+                                |> atualizar PedirDica
+                                |> atualizar (Clicou centro)
+                                |> atualizar PedirDica
+
+                        comRespostaAntiga =
+                            atualizar (DicaChegou 1 (Ok centro)) aguardando
+                    in
+                    Expect.all
+                        [ \_ ->
+                            comRespostaAntiga.partida
+                                |> ajudaDe
+                                |> Expect.equal (Just PedindoDica)
+                        , \_ ->
+                            comRespostaAntiga
+                                |> atualizar (DicaChegou 2 (Ok canto))
+                                |> .partida
+                                |> ajudaDe
+                                |> Expect.equal (Just (Dica canto))
+                        ]
+                        ()
+            , test "erro 422 sem solução aparece como aviso e sem destaque" <|
+                \_ ->
+                    comFase faseAUmClique
+                        |> atualizar PedirDica
+                        |> atualizar (DicaChegou 1 (Err "Esta fase não tem solução."))
+                        |> esperarErroDaDica "Esta fase não tem solução."
+            , test "erro 422 de fase resolvida aparece como aviso e sem destaque" <|
+                \_ ->
+                    comFase faseAUmClique
+                        |> atualizar PedirDica
+                        |> atualizar (DicaChegou 1 (Err "A fase já está resolvida."))
+                        |> esperarErroDaDica "A fase já está resolvida."
+            , test "seguir dicas até apagar todas as luzes leva à vitória" <|
+                \_ ->
+                    comFase faseDeDoisCliques
+                        |> atualizar PedirDica
+                        |> atualizar (DicaChegou 1 (Ok centro))
+                        |> atualizar (Clicou centro)
+                        |> atualizar PedirDica
+                        |> atualizar (DicaChegou 2 (Ok canto))
+                        |> atualizar (Clicou canto)
+                        |> .partida
+                        |> ehVencida
+                        |> Expect.equal True
+            ]
+        , describe "vitória (#18)"
             [ test "mensagem mostra cliques e mínimo" <|
                 \_ ->
                     Main.mensagemVitoria 5 3
@@ -252,3 +391,34 @@ celulaEm posicao model =
 
         _ ->
             Nothing
+
+
+faseAtual : Main.Model -> Maybe Fase.Fase
+faseAtual model =
+    case model.partida of
+        Jogando jogo ->
+            Just (Main.faseDoJogo jogo)
+
+        _ ->
+            Nothing
+
+
+esperarDestaques : Int -> Main.Model -> Expect.Expectation
+esperarDestaques quantidade model =
+    Main.view model
+        |> Query.fromHtml
+        |> Query.findAll [ Selector.class "tabuleiro-celula--dica" ]
+        |> Query.count (Expect.equal quantidade)
+
+
+esperarErroDaDica : String -> Main.Model -> Expect.Expectation
+esperarErroDaDica mensagem model =
+    Expect.all
+        [ \_ ->
+            Main.view model
+                |> Query.fromHtml
+                |> Query.find [ Selector.attribute (Attributes.attribute "role" "alert") ]
+                |> Query.has [ Selector.text mensagem ]
+        , \_ -> esperarDestaques 0 model
+        ]
+        ()

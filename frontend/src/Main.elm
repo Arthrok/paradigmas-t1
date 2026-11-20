@@ -1,4 +1,4 @@
-module Main exposing (Ajuda(..), Jogo, Model, Modo(..), Msg(..), Partida(..), faseDoJogo, init, main, mensagemVitoria, update)
+module Main exposing (Ajuda(..), Jogo, Model, Modo(..), Msg(..), Partida(..), faseDoJogo, init, main, mensagemVitoria, update, view)
 
 import Api
 import Browser
@@ -53,6 +53,7 @@ type alias Model =
     , nivel : Nivel
     , posicaoEmFoco : Maybe Fase.Posicao
     , ferramenta : Ferramenta
+    , idDica : Int
     }
 
 
@@ -100,7 +101,7 @@ type Msg
     | Refazer
     | Reiniciar
     | PedirDica
-    | DicaChegou (Result String Fase.Posicao)
+    | DicaChegou Int (Result String Fase.Posicao)
     | PedirSolucao
     | SolucaoChegou (Result String { cliques : List Fase.Posicao, minimo : Int })
     | PassoAnimacao
@@ -125,6 +126,7 @@ init _ =
       , nivel = Medio
       , posicaoEmFoco = Nothing
       , ferramenta = AlternarLuz
+      , idDica = 0
       }
     , Cmd.none
     )
@@ -384,33 +386,55 @@ update msg model =
                     ( model, Cmd.none )
 
         PedirDica ->
-            case model.partida of
-                Jogando jogo ->
-                    ( { model
-                        | partida =
-                            Jogando { jogo | ajuda = PedindoDica }
-                      }
-                    , Api.dica
-                        (Historico.atual jogo.historico)
-                        DicaChegou
-                    )
+            case ( model.modo, model.partida ) of
+                ( Jogar, Jogando jogo ) ->
+                    if jogo.ajuda == PedindoDica || estaAnimando jogo then
+                        ( model, Cmd.none )
+
+                    else
+                        let
+                            proximoId =
+                                model.idDica + 1
+                        in
+                        ( { model
+                            | partida =
+                                Jogando { jogo | ajuda = PedindoDica }
+                            , idDica = proximoId
+                          }
+                        , Api.dica
+                            (Historico.atual jogo.historico)
+                            (DicaChegou proximoId)
+                        )
 
                 _ ->
                     ( model, Cmd.none )
 
-        DicaChegou resultado ->
-            ( atualizarAjuda
-                (\ajuda ->
-                    case resultado of
-                        Ok posicao ->
-                            Dica posicao
+        DicaChegou id resultado ->
+            case model.partida of
+                Jogando jogo ->
+                    -- Um clique ou outro pedido pode invalidar a resposta em trânsito.
+                    if model.modo == Jogar && id == model.idDica && jogo.ajuda == PedindoDica then
+                        ( { model
+                            | partida =
+                                Jogando
+                                    { jogo
+                                        | ajuda =
+                                            case resultado of
+                                                Ok posicao ->
+                                                    Dica posicao
 
-                        Err erro ->
-                            ErroAjuda erro
-                )
-                model
-            , Cmd.none
-            )
+                                                Err erro ->
+                                                    ErroAjuda erro
+                                    }
+                          }
+                        , Cmd.none
+                        )
+
+                    else
+                        ( model, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
 
         PedirSolucao ->
             case model.partida of
@@ -1074,7 +1098,7 @@ viewControles model jogo venceu =
         , button
             [ class "controle-botao botao-dica"
             , onClick PedirDica
-            , disabled (ocupado || venceu)
+            , disabled (ocupado || venceu || jogo.ajuda == PedindoDica)
             ]
             [ text "Pedir dica" ]
         , button
@@ -1138,7 +1162,7 @@ viewAjuda ajuda =
                 ]
 
             ErroAjuda erro ->
-                [ p [] [ text ("Erro: " ++ erro) ] ]
+                [ p [ attribute "role" "alert" ] [ text erro ] ]
 
             ResultadoVerificacao solucoes minimo ->
                 [ p []
