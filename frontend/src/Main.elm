@@ -8,9 +8,6 @@ import Historico
 import Html exposing (Html, button, div, h1, h2, label, main_, option, p, select, span, text)
 import Html.Attributes exposing (attribute, class, disabled, value)
 import Html.Events exposing (onClick, onInput)
-import Html exposing (Html, button, div, h1, h2, main_, p, text)
-import Html.Attributes exposing (attribute, class, disabled)
-import Html.Events exposing (onClick)
 import Time
 import View.Tabuleiro as Tabuleiro
 
