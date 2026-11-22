@@ -2,12 +2,14 @@ module Main exposing (Ajuda(..), Jogo, Model, Modo(..), Msg(..), Partida(..), fa
 
 import Api
 import Browser
+import Browser.Events
 import Editor exposing (Ferramenta(..))
 import Fase
 import Historico
 import Html exposing (Html, button, div, h1, h2, label, main_, option, p, select, span, text)
 import Html.Attributes exposing (attribute, class, disabled, value)
 import Html.Events exposing (onClick, onInput)
+import Json.Decode as Decode
 import Time
 import View.Tabuleiro as Tabuleiro
 
@@ -100,6 +102,7 @@ type Msg
     | Desfazer
     | Refazer
     | Reiniciar
+    | AtalhoTeclado String Bool
     | PedirDica
     | DicaChegou Int (Result String Fase.Posicao)
     | PedirSolucao
@@ -384,6 +387,16 @@ update msg model =
 
                 _ ->
                     ( model, Cmd.none )
+
+        AtalhoTeclado tecla control ->
+            if control && String.toLower tecla == "z" then
+                update Desfazer model
+
+            else if control && String.toLower tecla == "y" then
+                update Refazer model
+
+            else
+                ( model, Cmd.none )
 
         PedirDica ->
             case ( model.modo, model.partida ) of
@@ -1074,27 +1087,39 @@ viewControles model jogo venceu =
     let
         ocupado =
             estaAnimando jogo
+
+        reinicioSemAlteracao =
+            jogo.cliques
+                == 0
+                && not (Historico.podeDesfazer jogo.historico)
+                && not (Historico.podeRefazer jogo.historico)
     in
     div [ class "app-controles" ]
         [ button
             [ class "controle-botao botao-secundario"
             , onClick Desfazer
             , disabled (ocupado || not (Historico.podeDesfazer jogo.historico))
+            , attribute "aria-label" "Desfazer"
+            , attribute "title" "Desfazer (Ctrl+Z)"
             ]
-            [ text "Desfazer" ]
+            [ text "↶" ]
         , button
             [ class "controle-botao botao-secundario"
             , onClick Refazer
             , disabled
                 (ocupado || venceu || not (Historico.podeRefazer jogo.historico))
+            , attribute "aria-label" "Refazer"
+            , attribute "title" "Refazer (Ctrl+Y)"
             ]
-            [ text "Refazer" ]
+            [ text "↷" ]
         , button
             [ class "controle-botao botao-perigo"
             , onClick Reiniciar
-            , disabled ocupado
+            , disabled (ocupado || reinicioSemAlteracao)
+            , attribute "aria-label" "Reiniciar"
+            , attribute "title" "Reiniciar"
             ]
-            [ text "Reiniciar" ]
+            [ text "⟲" ]
         , button
             [ class "controle-botao botao-dica"
             , onClick PedirDica
@@ -1193,16 +1218,30 @@ viewAjuda ajuda =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
+    let
+        teclas =
+            Browser.Events.onKeyDown
+                (Decode.map2 AtalhoTeclado
+                    (Decode.field "key" Decode.string)
+                    (Decode.field "ctrlKey" Decode.bool)
+                )
+    in
     case model.partida of
         Jogando jogo ->
             if estaAnimando jogo then
-                Time.every 700 (\_ -> PassoAnimacao)
+                Sub.batch
+                    [ Time.every 700 (\_ -> PassoAnimacao)
+                    , teclas
+                    ]
 
             else
-                Sub.none
+                teclas
+
+        Vencida _ ->
+            teclas
 
         _ ->
-            Sub.none
+            teclas
 
 
 main : Program () Model Msg

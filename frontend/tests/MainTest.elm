@@ -207,6 +207,42 @@ suite =
                     atualizar PassoAnimacao m
                         |> Expect.equal m
             ]
+        , describe "desfazer, refazer e reiniciar (#19)"
+            [ test "desfazer volta da vitória e diminui os cliques" <|
+                \_ ->
+                    comFase faseAUmClique
+                        |> atualizar (Clicou centro)
+                        |> atualizar Desfazer
+                        |> .partida
+                        |> (\p -> ( cliquesDe p, ehVencida p ))
+                        |> Expect.equal ( Just 0, False )
+            , test "refazer recupera a vitória e a contagem" <|
+                \_ ->
+                    comFase faseAUmClique
+                        |> atualizar (Clicou centro)
+                        |> atualizar Desfazer
+                        |> atualizar Refazer
+                        |> .partida
+                        |> (\p -> ( cliquesDe p, ehVencida p ))
+                        |> Expect.equal ( Just 1, True )
+            , test "reiniciar volta à fase inicial e zera os cliques" <|
+                \_ ->
+                    comFase faseDeDoisCliques
+                        |> atualizar (Clicou centro)
+                        |> atualizar Reiniciar
+                        |> .partida
+                        |> cliquesDe
+                        |> Expect.equal (Just 0)
+            , test "Ctrl+Z desfaz e Ctrl+Y refaz" <|
+                \_ ->
+                    comFase faseAUmClique
+                        |> atualizar (Clicou centro)
+                        |> atualizar (AtalhoTeclado "z" True)
+                        |> atualizar (AtalhoTeclado "y" True)
+                        |> .partida
+                        |> (\p -> ( cliquesDe p, ehVencida p ))
+                        |> Expect.equal ( Just 1, True )
+            ]
         , describe "editor (#20)"
             [ test "editar altera a fase com a ferramenta escolhida" <|
                 \_ ->
