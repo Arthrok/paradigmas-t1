@@ -142,48 +142,76 @@ Node.js ≥ 20, Python 3.13 e `uv`.
 
 ### 5.1 Predicados principais
 
-<!--
-  Os predicados mais importantes, com o local no código. Use a notação
-  nome/aridade e indique entradas (+) e saídas (-), como na documentação
-  do SWI-Prolog.
--->
-
 | Predicado | Local | O que faz |
 |-----------|-------|-----------|
-| [`resolver(+Entrada, -Saida)`] | [`arquivo.pl:42`] | [...] |
-| [...] | [...] | [...] |
+| `afeta(+Carimbos, ?Clicada, ?Afetada)` | `regras.pl:88` | Relaciona uma célula clicada às luzes afetadas pelo seu carimbo, também permitindo consultar quais cliques podem afetar uma luz |
+| `apertar(+Posicao, +Fase, -NovaFase)` | `regras.pl:113` | Aplica um clique e produz a nova fase, invertendo as luzes afetadas; falha em uma trava |
+| `modelo(+Fase, -Apertos)` | `solver.pl:55` | Declara as variáveis booleanas dos cliques e as restrições XOR de todas as luzes |
+| `num_solucoes(+Fase, -Quantidade)` | `solver.pl:95` | Conta quantas soluções existem sem enumerar matrizes de apertos |
+| `solucao(+Fase, -Cliques, -Total)` | `solver.pl:112` | Enumera soluções válidas por `labeling/1` e devolve os cliques e o total |
+| `solucao_minima(+Fase, -Cliques, -Total)` | `solver.pl:125` | Obtém a solução com menor número de cliques usando `aggregate_all/3` |
+| `dica(+Fase, -Resultado)` | `solver.pl:143` | Devolve uma posição da solução mínima, `resolvida` ou `sem_solucao` |
+| `gerar(+Variante, +Tamanho, +Dificuldade, -Fase)` | `gerador.pl:52` | Gera uma fase que tenha exatamente a dificuldade mínima solicitada |
+| `verificar(+Luzes, +Textos, -Resultado)` | `fronteira.pl:41` | Converte uma fase do formato textual em termo Prolog e calcula solução mínima e quantidade |
+| `resolver(+Luzes, +Textos, -Resultado)` | `fronteira.pl:64` | Devolve à API a solução mínima no formato JSON esperado pelo Elm |
 
 ### 5.2 Conceitos do paradigma lógico utilizados
 
-<!--
-  Marque o que o projeto usa DE FATO e indique onde. Não é preciso usar
-  tudo; é preciso explicar bem o que foi usado.
--->
-
-- [ ] Fatos e regras como base de conhecimento: [onde]
-- [ ] Unificação e casamento de padrões: [onde]
-- [ ] Recursão (inclusive sobre listas): [onde]
-- [ ] Backtracking e múltiplas soluções: [onde]
-- [ ] `findall/3`, `bagof/3`, `setof/3` ou similares: [onde]
-- [ ] Corte (`!`) ou negação (`\+`), e por que foram necessários: [onde]
-- [ ] Programação por restrições (CLP(FD) ou outra): [onde]
-- [ ] Predicados de ordem superior (`maplist`, `foldl`, `include`...): [onde]
-- [ ] Outro: [...]
+- [x] Fatos e regras como base de conhecimento: os tipos de carimbo e deslocamentos ficam em `deslocamentos/2`, em `regras.pl:52-59`
+- [x] Unificação e casamento de padrões: `apertar/3` destrói ou preserva o termo `fase(Luzes, Carimbos)` em `regras.pl:113-126`
+- [x] Recursão (inclusive sobre listas): as linhas e colunas das matrizes são percorridas por `nth0/3`, `maplist/2` e `findall/3`
+- [x] Backtracking e múltiplas soluções: `repeat/0` testa novas fases no gerador em `gerador.pl:65-78`; `solucao/3` enumera soluções por backtracking em `solver.pl:112-122`
+- [x] `findall/3`, `bagof/3`, `setof/3` ou similares: `findall/3` coleta as células afetadas em `regras.pl:116` e as posições booleanas em `solver.pl:57-74`
+- [x] Corte (`!`) ou negação (`\+`), e por que foram necessários: o corte em `gerador.pl:62-68` encerra o laço na primeira fase válida; `\+` não é usado neste módulo
+- [x] Programação por restrições (CLP(Boolean)): a library `clpb` declara XOR e testa consistência em `solver.pl:55-81`
+- [x] Predicados de ordem superior (`maplist`, `foldl`, `include`...): `maplist/2` constrói apertos e restrições; `foldl/4` calcula o XOR; `aggregate_all/3` encontra o mínimo
+- [x] Relação nos dois sentidos: `afeta/3` em `regras.pl:88-94` recebe a posição clicada ou a posição afetada, dependendo do argumento que está instanciado
+- [x] `aggregate_all/3`: em `solucao_minima/3`, `solver.pl:125-132`, mantém o par com menor `T` entre todas as soluções encontradas
 
 ### 5.3 Trecho em destaque
 
-<!--
-  Escolha o trecho de Prolog de que o grupo mais se orgulha (ou o mais
-  difícil). Cole o código e explique como ele funciona: o que é declarado,
-  como o Prolog chega à resposta, e por que essa solução é "lógica" e não
-  uma tradução de um algoritmo imperativo.
--->
-
 ```prolog
-[trecho]
+modelo(fase(Luzes, Carimbos), Apertos) :-
+    maplist(maplist(aperto_permitido), Carimbos, Apertos),
+    findall(Posicao, celula(Luzes, Posicao, _), Posicoes),
+    maplist(restricao_da_luz(Luzes, Carimbos, Apertos), Posicoes).
+
+restricao_da_luz(Luzes, Carimbos, Apertos, Posicao) :-
+    celula(Luzes, Posicao, Luz),
+    findall(Quem, afeta(Carimbos, Quem, Posicao), Quems),
+    maplist(celula(Apertos), Quems, ApertosQueAfetam),
+    foldl(xor, ApertosQueAfetam, 0, Paridade),
+    sat(Paridade =:= Luz).
+
+xor(Aperto, Acumulado, Acumulado # Aperto).
 ```
 
-[Explicação.]
+O trecho está em `solver.pl:55-81`. `modelo/2`
+não recebe uma sequência pronta nem implementa a execução dos cliques:
+ele declara o que significa uma solução. Cada posição de `Apertos` é uma
+variável booleana ligada à matriz de carimbos; para uma trava,
+`aperto_permitido/2` fixa seu valor em `0`.
+
+Para cada posição do tabuleiro, `restricao_da_luz/4` usa `afeta/3` no sentido
+de "quem precisa ser clicado para afetar esta luz". `afeta/3` é uma relação
+nos dois sentidos: no gerador e no clique ela pode partir da posição clicada,
+enquanto o solver parte da posição afetada. `findall/3` reúne essas posições
+clicadas e `foldl/4` monta o XOR de seus apertos. A restrição
+`sat(Paridade =:= Luz)` exige paridade ímpar quando a luz inicial está acesa
+e paridade par quando está apagada.
+
+É uma solução lógica porque o programa declara as equações booleanas e o
+resolvedor `clpb` procura valores consistentes. Não há um algoritmo externo
+que simule cada combinação: `solucao/3` pede o `labeling/1` das variáveis,
+`num_solucoes/2` usa `sat_count/2` e `solucao_minima/3` usa
+`aggregate_all/3` para comparar as soluções.
+
+Esse mesmo modelo sustenta as três features: `verificar/3` conta soluções,
+`dica/3` escolhe uma posição da solução mínima e `resolver/3` devolve os
+cliques mínimos. A relação entre a entrada do gerador e o modelo também é
+direta: em `gerador.pl:65-78`, o gerador parte do tabuleiro apagado, aplica
+cliques com `foldl/4` e volta ao `modelo/2` do solver para conferir a
+dificuldade mínima antes de aceitar a fase.
 
 ## 6. Parte em Elm
 
