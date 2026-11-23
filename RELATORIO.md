@@ -85,25 +85,41 @@
   trabalho não pode ser verificado.
 -->
 
-**Requisitos** (com as versões que o grupo usou):
+**Requisitos**:
 
-- SWI-Prolog [9.x]
-- Node.js [2x.x]
-- [uv / Python 3.x, se usar]
+- Linux (Ubuntu/Debian)
+- SWI-Prolog ≥ 9.2 (testado: 10.0.2)
+- Node.js ≥ 20
+- Python 3.13 gerenciado pelo `uv`
+- `uv`
+- `make`
 
 **Instalação e execução:**
 
 ```sh
-[comandos exatos, na ordem]
+git clone https://github.com/Arthrok/paradigmas-t1.git
+cd paradigmas-t1
+sudo add-apt-repository ppa:swi-prolog/stable
+sudo apt install swi-prolog make
+curl -LsSf https://astral.sh/uv/install.sh | sh
+make install
+make dev
 ```
+
+Abra o frontend em `http://localhost:5173` e a documentação da API em
+`http://localhost:8000/docs`. Para interromper os dois servidores, use
+`Ctrl+C` no terminal.
 
 **Testes:**
 
 ```sh
-[comando para rodar os testes, se houver]
+make test
+make lint
+make build
 ```
 
-**Testado em:** [Linux / Windows / macOS, navegador]
+**Testado em:** Linux, com Chromium. O ambiente usa SWI-Prolog ≥ 9.2,
+Node.js ≥ 20, Python 3.13 e `uv`.
 
 ## 4. Arquitetura
 
@@ -220,13 +236,38 @@
 
 ## 8. Testes e validação
 
-<!--
-  Como o grupo sabe que o sistema funciona? Testes automatizados (plunit,
-  pytest, elm-test), roteiros de teste manual, casos de borda verificados.
--->
+O projeto usa três níveis de testes automáticos:
 
-- [O que foi testado e como.]
-- [Casos de borda considerados.]
+- **PLUnit** em `backend/prolog/test_*.pl`: regras dos carimbos, bordas,
+  resoluções, geração e fronteira com o Python.
+- **pytest** em `backend/tests/test_api.py`: contrato HTTP, formatos JSON,
+  códigos de status e mensagens de regra de negócio.
+- **elm-test** em `frontend/tests/*.elm`: domínio Elm, decoders/encoders,
+  estados da interface e casos de resposta da API.
+
+Executar todos os testes e verificações locais:
+
+```sh
+make test
+make lint
+make build
+```
+
+### Casos de borda
+
+| Caso de borda | Comportamento esperado | Evidência automática |
+|---|---|---|
+| Dica em fase resolvida | 422 com `"A fase já está resolvida."` | pytest `test_dica_em_fase_resolvida`; elm-test em `ApiTest` e `MainTest` |
+| Fase sem solução | 200 com `solucoes: 0` ao verificar; dica e resolução retornam 422 com `"Esta fase não tem solução."` | pytest `test_verificar_sem_solucao_nao_e_erro`, `test_dica_sem_solucao` e `test_resolver_sem_solucao`; elm-test em `MainTest` |
+| Dificuldade impossível | 422 com `"Não foi possível gerar uma fase com essa dificuldade."` | pytest `test_gerar_dificuldade_impossivel`; PLUnit em `test_gerador.pl` |
+| Tamanho inválido | rejeita tamanhos fora de 4–6 e matrizes não NxN | pytest `test_gerar_rejeita_tamanho_fora_da_faixa` e `test_verificar_rejeita_matriz_nao_quadrada`; elm-test em `FaseTest` e `EditorTest` |
+| Carimbo inválido | rejeita nome fora das formas conhecidas | pytest `test_verificar_rejeita_carimbo_desconhecido`; elm-test em `ApiTest` |
+| Backend fora do ar ou inacessível | Elm transforma falha de rede/timeout em uma mensagem de erro, sem considerar resposta como sucesso | elm-test em `ApiTest` (`backend fora do ar` e `timeout`) |
+
+No Linux, o roteiro manual ponta a ponta consiste em iniciar `make dev`,
+gerar uma fase em cada variante, pedir uma dica, verificar que a dica deixa o
+tabuleiro válido, seguir a solução até a vitória e repetir o fluxo no editor.
+O resultado deve coincidir com as rotas documentadas em `docs/api.md`.
 
 ## 9. Limitações e problemas conhecidos
 

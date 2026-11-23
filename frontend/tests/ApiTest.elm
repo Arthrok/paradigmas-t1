@@ -42,6 +42,16 @@ suite =
             \_ ->
                 resposta422 "A fase já está resolvida."
                     |> Expect.equal (Ok (Err "A fase já está resolvida."))
+        , test "backend fora do ar vira erro de rede" <|
+            \_ ->
+                Api.interpretarResposta (Json.Decode.succeed ())
+                    Http.NetworkError_
+                    |> Expect.equal (Err Http.NetworkError)
+        , test "backend que demora demais vira erro de timeout" <|
+            \_ ->
+                Api.interpretarResposta (Json.Decode.succeed ())
+                    Http.Timeout_
+                    |> Expect.equal (Err Http.Timeout)
         ]
 
 
