@@ -294,7 +294,7 @@ type Msg
 ```
 
 
-[Explicação das escolhas.]
+
 
 O tipo Partida representa os diferentes estados possíveis de uma partida. Essa escolha evita utilizar vários valores booleanos para controlar situações como geração, jogo em andamento, falha e vitória.
 
@@ -367,7 +367,7 @@ apertar posicao fase =
 
 ```
 
-[Explicação.]
+
 
 Inicialmente, a função utiliza afetadas para determinar quais posições do tabuleiro devem sofrer alterações a partir da posição selecionada. Em seguida, define a função auxiliar inverterSeAfetada, que verifica se cada célula pertence à lista de posições afetadas. Caso pertença, seu estado é invertido por meio da função inverter; caso contrário, a célula permanece inalterada.
 
@@ -433,8 +433,8 @@ O resultado deve coincidir com as rotas documentadas em `docs/api.md`.
   problema escondido que o avaliador descobre sozinho.
 -->
 
-- [Limitação ou bug conhecido, e em que situação acontece.]
-- [O que o grupo faria com mais tempo.]
+- Não há nenhuma limitação de bug conhecida pelo grupo. 
+- O grupo conseguiu implementar todas as issues do projeto no prazo estipulado. 
 
 ## 10. Contribuição de cada integrante
 
@@ -445,11 +445,12 @@ O resultado deve coincidir com as rotas documentadas em `docs/api.md`.
 
 | Integrante | Principais contribuições |
 |------------|--------------------------|
-| [Nome]     | [...] |
-| [Nome]     | [...] |
-| [Nome]     | [...] |
-| [Nome]     | [...] |
-| [Nome]     | [...] |
+| Arthur Alves Melo       | Issues #1, #3, #4, #5, #6, #7, #8, #9, #10, #12 |
+| Bruna de Lima Santos     | Issues #14, #17, #24 |
+| Caio Lucas Lelis Borges     | Issues #18, #20 |
+| Isaque Santos     | Issues #13, #21, #23 |
+| João Pedro da Silva Rodrigues     | Issues #15, #16, #24 |
+| Maria Eduarda dos Santos Marques     | Issues #11, #19, #23, #24 |
 
 <!--
   Além desta tabela, que é do grupo, cada integrante entrega uma avaliação
