@@ -1,89 +1,40 @@
-<!--
-  TEMPLATE DO RELATÓRIO DE ENTREGA: Paradigmas de Programação
-
-  Como usar:
-  - Copie este arquivo para a raiz do repositório do grupo, com o nome
-    RELATORIO.md, e preencha todas as seções.
-  - Os textos entre <!- - e - -> (como este) são instruções. Eles não
-    aparecem quando o arquivo é visualizado, mas APAGUE-OS antes de entregar.
-  - Troque tudo o que estiver entre [colchetes].
-  - Seja direto. Frases curtas e listas valem mais que parágrafos longos.
-    Um relatório típico cabe em 4 a 8 páginas.
-  - O relatório e o código são avaliados juntos. Sempre que possível,
-    aponte para o código (arquivo e linha) em vez de descrevê-lo. Os
-    critérios de avaliação estão em AVALIACAO.md.
-  - ANTES DE ENTREGAR, rode o validador na raiz do repositório:
-
-        uv run scripts/validar_entrega.py
-
-    Ele confere a FORMA do relatório (comentários apagados, colchetes
-    preenchidos, tabelas bem formadas, seções presentes, arquivos
-    existentes), não o conteúdo. Corrija todos os ERROS apontados.
--->
-
-# [Nome do projeto]
+# Carimbó
 
 ## 1. Identificação
 
-<!--
-  Os grupos têm de 3 a 7 pessoas (5, em média). A tabela abaixo tem 5
-  linhas: adicione ou remova linhas conforme o tamanho do seu grupo, aqui e
-  na seção 10. Os grupos podem misturar alunos das turmas das 14h e das 16h:
-  indique a turma de CADA integrante.
--->
-
 | Nome completo | Matrícula | Turma (14h/16h) | Usuário GitHub |
 |---------------|-----------|-----------------|----------------|
-| [Nome]        | [000000]  | [14h]           | [@usuario]     |
-| [Nome]        | [000000]  | [16h]           | [@usuario]     |
-| [Nome]        | [000000]  | [14h]           | [@usuario]     |
-| [Nome]        | [000000]  | [16h]           | [@usuario]     |
-| [Nome]        | [000000]  | [14h]           | [@usuario]     |
+| Arthur Alves Melo | 222037657 | 16h | @arthrok |
+| Bruna de Lima Santos | 211041105 | 16h | @libruna |
+| Caio Lucas Lelis Borges | 211062900 | 16h | @caio-lelis |
+| Isaque Santos | 211061903 | 16h | @IsaqueSH |
+| João Pedro da Silva Rodrigues | 211031074 | 16h | @joaopedrodasilvarodrigues |
+| Maria Eduarda dos Santos Marques | 200023985 | 16h | @EduardaSMarques |
 
-- **Nome do projeto:** [o mesmo do título acima]
-- **Nome do grupo:** [um nome criativo, que não se repita na turma]
-  <!--
-    O nome do grupo identifica vocês nas planilhas de notas e na chamada
-    para a apresentação. Não dá para validar se é único, então caprichem:
-    "Grupo 3" vai colidir com o "Grupo 3" da outra turma.
-  -->
-- **Repositório:** [https://github.com/...]
-- **Commit ou tag entregue:** [`a1b2c3d` ou `v1.0`]
-  <!--
-    O avaliador vai olhar exatamente esta versão. Para criar uma tag:
-      git tag v1.0 && git push origin v1.0
-  -->
-- **Ponto de partida:** [template do Sudoku com ajustes | variante do Sudoku | outro jogo conhecido | remix original | jogo inventado]
-  <!--
-    Escolha UMA faixa. Ela define o ajuste de escopo da nota do grupo
-    (AVALIACAO.md, seção 1.5). O professor confirma a faixa na apresentação.
-  -->
-- **Slides da apresentação oral:** [`docs/apresentacao.pdf` | link externo | não há]
-  <!--
-    No final do semestre, cada grupo faz uma apresentação oral de 15
-    minutos. Slides são opcionais; se o grupo usar, coloque o arquivo no
-    repositório (de preferência em PDF) e indique o caminho aqui.
-  -->
+- **Nome do projeto:** Carimbó
+- **Nome do grupo:** Apagão
+- **Repositório:** https://github.com/Arthrok/paradigmas-t1
+- **Commit ou tag entregue:** `v1.0`
+- **Ponto de partida:** remix original
+- **Slides da apresentação oral:** não há
 
 ## 2. Resumo
 
-<!--
-  De 3 a 5 linhas: o que o sistema faz, para quem, e qual problema o
-  Prolog resolve nele. Quem ler só esta seção deve entender o projeto.
--->
-
-[Resumo do projeto.]
+Carimbó é um quebra-cabeça de luzes inspirado no Lights Out. Clicar numa
+célula inverte as luzes no desenho do seu carimbo (cruz, xis, linha, coluna
+ou bloco). Células travadas não podem ser clicadas, mas mudam com os cliques
+das vizinhas. O objetivo é apagar todas as luzes. O Prolog trata cada fase
+como um sistema de equações booleanas. Assim, ele diz quantas soluções a fase
+tem, encontra a menor, dá dicas e gera fases novas com o número exato de
+cliques pedido. O Elm cuida da interface: aplica o clique na hora, guarda o
+histórico para desfazer e refazer e tem um editor de fases.
 
 ![Captura de tela do sistema](docs/captura.png)
-<!-- Uma ou duas capturas de tela da interface. Crie a pasta docs/ se precisar. -->
+
+*Uma fase 5x5 da variante "Carimbos e travas". A dica do Prolog aparece
+destacada na célula com a lâmpada.*
 
 ## 3. Como executar
-
-<!--
-  Teste estas instruções numa máquina "limpa" (ou peça a um colega de
-  outro grupo). Se o avaliador não conseguir rodar o sistema, o resto do
-  trabalho não pode ser verificado.
--->
 
 **Requisitos**:
 
@@ -123,20 +74,27 @@ Node.js ≥ 20, Python 3.13 e `uv`.
 
 ## 4. Arquitetura
 
-<!--
-  Um diagrama simples (pode ser em texto) mostrando as partes do sistema e
-  como elas se comunicam. Diga em uma frase a responsabilidade de cada parte.
--->
+```
+ navegador                         backend
+┌──────────────┐  HTTP/JSON   ┌──────────────┐   janus   ┌───────────────────────┐
+│ Elm          │ ───────────► │ Python       │ ────────► │ Prolog                │
+│ interface e  │ ◄─────────── │ FastAPI      │ ◄──────── │ fronteira.pl          │
+│ clique local │              │ (só repassa) │           │  ├─ solver.pl  (clpb) │
+└──────────────┘              └──────────────┘           │  ├─ gerador.pl        │
+                                                         │  └─ regras.pl         │
+                                                         └───────────────────────┘
+```
 
-```
-[Elm] --HTTP/JSON--> [Python] --janus--> [Prolog]
-```
+O clique no tabuleiro não passa pelo backend. O Elm aplica a mesma regra do
+`regras.pl` direto no navegador, para a resposta ser instantânea. O Elm só
+chama o backend para gerar uma fase, verificar, pedir uma dica ou ver a
+solução. Toda a lógica que exige raciocínio fica no Prolog.
 
 | Parte  | Responsabilidade | Arquivos principais |
 |--------|------------------|---------------------|
-| Prolog | [...]            | [`backend/prolog/...`] |
-| Elm    | [...]            | [`frontend/src/...`]   |
-| Python | [só integração]  | [`backend/app/...`]    |
+| Prolog | Regras do jogo, resolução da fase por restrições booleanas (número de soluções, solução mínima, dica) e gerador de fases | `backend/prolog/regras.pl`, `solver.pl`, `gerador.pl`, `fronteira.pl` |
+| Elm    | Interface, clique local, desfazer e refazer, editor de fases e chamadas à API | `frontend/src/Main.elm`, `Fase.elm`, `Historico.elm`, `Api.elm`, `Editor.elm`, `View/Tabuleiro.elm` |
+| Python | Só integração: valida o formato do JSON e repassa cada pedido a um predicado de `fronteira.pl` | `backend/app/main.py`, `backend/app/prolog.py` |
 
 ## 5. Parte em Prolog
 
@@ -217,11 +175,6 @@ dificuldade mínima antes de aceitar a fase.
 
 ### 6.1 Modelo e mensagens
 
-<!--
-  Os tipos centrais do programa: o Model, o tipo Msg e os custom types do
-  domínio. Explique as escolhas: por que um custom type e não um Bool, por
-  que Maybe ou Result, etc.
--->
 A implementação do frontend utiliza a arquitetura tradicional do Elm, organizada em três elementos principais: **Model**, **Update** e **View**. Essa estrutura permite separar o estado da aplicação, as operações que modificam esse estado e a interface apresentada ao usuário.
 
 O `Model` concentra as informações necessárias para representar o estado atual do jogo, como as configurações da partida, o modo de jogo, o nível de dificuldade, a ferramenta selecionada e a posição em foco no tabuleiro.
@@ -381,15 +334,31 @@ Assim, a lógica de atualização do tabuleiro permanece isolada e previsível, 
 
 ## 7. Integração
 
-<!--
-  Curto: a parte Python não é avaliada. Liste as rotas ou a forma de
-  comunicação e o formato dos dados trocados. Se o grupo não usou Python,
-  explique como Elm e Prolog se comunicam.
--->
+O Elm conversa com o backend por quatro rotas HTTP. Todas recebem e devolvem
+JSON. O Python valida o formato com Pydantic e chama um predicado de
+`fronteira.pl` pela biblioteca janus. O contrato completo, com exemplos,
+está em [`docs/api.md`](docs/api.md).
+
+Uma fase trafega como duas matrizes NxN, com N de 4 a 6:
+
+```json
+{ "luzes": [[1, 0, ...], ...], "carimbos": [["cruz", "trava", ...], ...] }
+```
+
+Em `luzes`, 1 significa acesa. Em `carimbos`, os valores possíveis são
+`cruz`, `xis`, `linha`, `coluna`, `bloco` ou `trava`.
 
 | Rota / chamada | Entrada | Saída | Predicado Prolog |
 |----------------|---------|-------|------------------|
-| [`POST /api/...`] | [...] | [...] | [`...`] |
+| `POST /api/gerar` | `{tamanho, dificuldade, variante}` | `{fase, minimo}` | `fronteira:gerar/5` |
+| `POST /api/verificar` | `{fase}` | `{solucoes, minimo}` (`minimo` é `null` se não há solução) | `fronteira:verificar/3` |
+| `POST /api/dica` | `{fase}` | `{linha, coluna}` | `fronteira:dica/3` |
+| `POST /api/resolver` | `{fase}` | `{cliques: [[l, c], ...], minimo}` | `fronteira:resolver/3` |
+
+Quando um pedido viola uma regra do jogo, a resposta é **422** com
+`{"detail": "<mensagem>"}`. Isso acontece quando a dificuldade é impossível,
+quando a fase não tem solução ou quando ela já está resolvida. O Elm mostra
+essa mensagem ao jogador.
 
 ## 8. Testes e validação
 
@@ -428,113 +397,121 @@ O resultado deve coincidir com as rotas documentadas em `docs/api.md`.
 
 ## 9. Limitações e problemas conhecidos
 
-<!--
-  Seja honesto. Um problema conhecido e bem descrito vale mais que um
-  problema escondido que o avaliador descobre sozinho.
--->
-
-- Não há nenhuma limitação de bug conhecida pelo grupo. 
-- O grupo conseguiu implementar todas as issues do projeto no prazo estipulado. 
+- **Tabuleiro de no máximo 6x6.** No modo clássico (só cruz), o gerador não
+  conseguiu montar fases 7x7 dentro do limite de tempo. Por isso o tamanho
+  ficou entre 4 e 6.
+- **O gerador tem limite de 5 segundos.** Ele tenta sorteios até achar uma
+  fase cuja solução mínima tenha exatamente o número de cliques pedido. Para
+  dificuldades altas demais, ele desiste depois de 5 s e o jogo mostra
+  "Não foi possível gerar uma fase com essa dificuldade". Os níveis Fácil,
+  Médio e Difícil foram calibrados para gerar rápido em todas as variantes.
+- **A solução mínima é encontrada por enumeração.** O solver lista todas as
+  soluções e escolhe a menor. Isso funciona porque, nas fases que testamos
+  nos tamanhos permitidos, nenhuma passou de 4 soluções. Em tabuleiros
+  maiores, com mais soluções, essa estratégia ficaria lenta.
+- **A regra do clique existe em dois lugares.** A tabela de deslocamentos
+  dos carimbos está em `regras.pl` e também em `Fase.elm`, para o clique ser
+  instantâneo. Se uma mudar sem a outra, o tabuleiro e o solver passam a
+  discordar. Os testes dos dois lados conferem a mesma tabela, mas nada
+  impede essa divergência automaticamente.
+- **O frontend depende do backend para as features de raciocínio.** Sem o
+  backend, ainda dá para clicar numa fase já carregada. Gerar, verificar,
+  pedir dica e ver a solução mostram uma mensagem de erro.
+- **Atraso na entrega.** A interface só ficou completa em 22/11, depois do
+  primeiro prazo (18/11).
 
 ## 10. Contribuição de cada integrante
 
-<!--
-  O que cada pessoa fez. Deve ser coerente com o histórico de commits do
-  repositório. Todos os integrantes precisam concordar com esta tabela.
--->
-
 | Integrante | Principais contribuições |
 |------------|--------------------------|
-| Arthur Alves Melo       | Issues #1, #3, #4, #5, #6, #7, #8, #9, #10, #12 |
-| Bruna de Lima Santos     | Issues #14, #17, #24 |
-| Caio Lucas Lelis Borges     | Issues #18, #20 |
-| Isaque Santos     | Issues #13, #21, #23 |
-| João Pedro da Silva Rodrigues     | Issues #15, #16, #24 |
-| Maria Eduarda dos Santos Marques     | Issues #11, #19, #23, #24 |
-
-<!--
-  Além desta tabela, que é do grupo, cada integrante entrega uma avaliação
-  360 graus individual no SEU repositório do GitHub Classroom, em
-  avaliacao-360/<matricula>.md. Veja o modelo em avaliacao-360/TEMPLATE.md.
--->
+| Arthur Alves Melo | Documentação de projeto (arquitetura, ADRs, contrato da API, plano de issues); base do projeto e CI (#1, #3); todo o Prolog: `regras.pl`, `solver.pl`, `gerador.pl` e `fronteira.pl` (#4–#8); rotas FastAPI e testes pytest (#9); `Fase.elm` e testes fuzz (#10, #12); seções 1, 2, 4 e 7 do relatório (#22) |
+| Bruna de Lima Santos | `View/Tabuleiro.elm`: grid, ícones dos carimbos, pré-visualização do clique, acessibilidade e visual responsivo (#14); dica na interface, com destaque da célula, bloqueio de pedidos duplicados e mensagens de erro (#17) |
+| Caio Lucas Lelis Borges | Solução mínima na interface: animação da solução e tela de vitória (#18); `Editor.elm`: editor de fases com verificação de solução (#20) |
+| Isaque Santos | `Api.elm`: requisições, encoders e decoders (#13); integração ponta a ponta, casos de borda e teste de backend fora do ar (#21); seções 3 e 8 do relatório |
+| João Pedro da Silva Rodrigues | `Main.elm`: Model, Msg, máquina de estados e clique local (#15); tela de nova fase com tamanho, nível e variante (#16); seções 6, 9 e 10 do relatório (#24, #25) |
+| Maria Eduarda dos Santos Marques | `Historico.elm` e testes (#11); desfazer, refazer e reiniciar na interface (#19); seção 5 do relatório (#23); revisão e merge dos PRs |
 
 ## 11. Fontes, código de terceiros e uso de IA
 
-<!--
-  Declare tudo o que não foi escrito pelo grupo. Declarar não tira pontos;
-  deixar de declarar pode anular o trabalho.
--->
+**Código reaproveitado.** Partimos do template do professor
+([fabiommendes/paradigmas-trabalho-final](https://github.com/fabiommendes/paradigmas-trabalho-final)).
+Dele mantivemos:
+- a configuração do backend (`pyproject.toml`, FastAPI e janus);
+- a estrutura do frontend (Vite, Tailwind/daisyUI, `index.html`,
+  `main.js`, `elm.json`);
+- o modelo deste relatório, o da avaliação 360 e o script
+  `scripts/validar_entrega.py`.
 
-**Código reaproveitado.** [Ex.: "Partimos do template do Sudoku. Mantivemos
-a integração Python e a estrutura do frontend; o arquivo `x.pl` e os
-módulos `Y.elm` e `Z.elm` foram escritos pelo grupo."]
+Nada do código do Sudoku foi aproveitado. Todos os arquivos `.pl`, todos os
+módulos `.elm`, as rotas em `backend/app/` e os testes são deste projeto.
 
-**Referências.** [Livros, documentação, tutoriais, repositórios consultados.]
+**Referências.**
+
+- Documentação do SWI-Prolog, em especial `library(clpb)` (restrições
+  booleanas: `sat/1`, `sat_count/2`, `labeling/1`), `library(plunit)`,
+  `call_with_time_limit/2` e a interface janus com Python.
+- Documentação do Elm (guia oficial e pacotes `elm/http`, `elm/json` e
+  `elm-explorations/test`, incluindo os testes fuzz).
+- Documentação do FastAPI e do Pydantic.
+- A formulação clássica do Lights Out como um sistema linear sobre GF(2):
+  cada clique é uma variável 0/1 e cada luz, uma equação XOR. Ela é a base
+  do modelo do `solver.pl` ([ADR 0004](docs/adr/0004-modelo-clpb.md)).
 
 **Uso de ferramentas de IA.**
 
-- **Faixa de uso no código:** [nenhum | pontual | auxiliar | intensivo]
-  <!--
-    nenhum: não usou. pontual: autocompletar, dúvidas, explicar erros.
-    auxiliar: trechos gerados pela IA e revisados pelo grupo. intensivo: a
-    IA escreveu a maior parte do código. Veja o efeito em AVALIACAO.md,
-    seção 1.5. Não declarar anula o trabalho; declarar não tira pontos.
-  -->
+- **Faixa de uso no código:** intensivo
+
+A IA escreveu a maior parte do código do backend (Prolog e Python), o
+domínio do jogo no Elm (`Fase.elm`) e boa parte da documentação. Para não
+perder o controle do projeto, o grupo tomou estes cuidados:
+
+1. **Arquitetura definida antes do código.** Antes de qualquer
+   implementação, escrevemos e revisamos a arquitetura, o contrato da API,
+   o design de cada linguagem e 8 ADRs (`docs/`). O código gerado teve que
+   seguir essas decisões, e não o contrário.
+2. **A regra própria foi validada antes de ser adotada.** Um protótipo
+   descartável (`docs/validacao/`) conferiu que "carimbos + células
+   travadas" funciona com as 5 features: todas as fases geradas tinham a
+   dificuldade pedida e todas as dicas estavam corretas.
+3. **Testes que conferem o resultado por um caminho independente.** São 39
+   testes PLUnit, 13 pytest e 89 elm-test, todos rodando no CI a cada PR.
+   Exemplos:
+   - aplicar a solução encontrada pelo solver com o simulador de cliques
+     precisa apagar o tabuleiro;
+   - seguir a dica precisa reduzir o mínimo em 1;
+   - testes fuzz conferem que clicar duas vezes desfaz o clique e que a
+     ordem dos cliques não importa, que são as propriedades que justificam
+     o modelo do Prolog.
+4. **Limites medidos e documentados.** Os tamanhos, os níveis e o limite de
+   tempo do gerador vieram de medições, e o que não funcionou (7x7, por
+   exemplo) está registrado nos ADRs e na seção 9.
+5. **Divisão por issues e revisão por PR.** Cada parte foi uma issue com um
+   responsável. Quase todos os PRs foram mesclados por um integrante
+   diferente do autor.
+   Cada integrante deve saber explicar o código atribuído a ele na seção 10.
 
 | Ferramenta | Para que foi usada | Como o grupo verificou o resultado |
 |------------|--------------------|------------------------------------|
-| [Nome ou "nenhuma"] | [...] | [...] |
+| Claude Code (modelo Claude Opus) | Documentação de projeto (arquitetura, ADRs, contrato da API, plano de issues); protótipo de validação da regra; todo o Prolog (`regras.pl`, `solver.pl`, `gerador.pl`, `fronteira.pl`); rotas FastAPI; `Fase.elm`; testes dessas partes; seções 2, 4, 7, 9, 10, 11 e 13 deste relatório; captura de tela | Revisão do código e dos PRs pelo grupo; testes automáticos no CI; conferência de casos conhecidos (clássico 5x5 com o centro aceso tem 4 soluções e mínimo 11); execução manual do jogo de ponta a ponta |
 
 ## 12. Apresentação oral
 
-<!--
-  A apresentação tem 15 minutos e acontece no final do semestre. Uma
-  divisão que costuma funcionar: 2 min de contexto, 5 min de demonstração
-  do sistema funcionando, 6 min mostrando o código Prolog e Elm mais
-  interessante, 2 min de limitações e aprendizados. Todos os integrantes
-  devem falar.
-
-  Preencha esta seção antes da apresentação.
--->
-
-- **Slides:** [mesmo caminho indicado na seção 1, ou "não há"]
+- **Slides:** não há
 - **Roteiro:**
 
 | Parte | Duração | Quem apresenta |
 |-------|:-------:|----------------|
-| [Contexto e objetivo] | [2 min] | [Nome] |
-| [Demonstração] | [5 min] | [Nome] |
-| [Código Prolog] | [3 min] | [Nome] |
-| [Código Elm] | [3 min] | [Nome] |
-| [Limitações e aprendizados] | [2 min] | [Nome] |
+| Contexto e objetivo: o Lights Out, a regra própria (carimbos e travas) e as 5 features | 2 min | Isaque Santos |
+| Demonstração: gerar fase em cada variante, jogar, desfazer, pedir dica | 3 min | João Pedro da Silva Rodrigues |
+| Demonstração: mostrar a solução mínima, vitória e editor de fases com verificação | 2 min | Caio Lucas Lelis Borges |
+| Código Prolog: a restrição XOR em `solver.pl` e como o mesmo modelo responde F1, F2 e F3 | 3 min | Maria Eduarda dos Santos Marques |
+| Código Elm: os tipos `Celula` e `Fase`, o `update` do `Main.elm` e um teste fuzz | 3 min | Bruna de Lima Santos |
+| Limitações e aprendizados | 2 min | Arthur Alves Melo |
 
 ## 13. Reflexão sobre os paradigmas
 
-<!--
-  De 1 a 3 parágrafos. Perguntas que podem ajudar:
-  - O que ficou mais simples em Prolog do que seria numa linguagem
-    imperativa? E o que ficou mais difícil?
-  - O que o compilador do Elm impediu que desse errado?
-  - Como a forma de pensar mudou entre as duas linguagens?
--->
+O que deixou o Prolog mais simples foi descrever o problema em vez de explicar como chegar à resposta. Numa linguagem imperativa, resolver uma fase seria escrever uma busca: testar várias combinações de cliques, simular cada uma e guardar a melhor. No Prolog, só dizemos o que é uma solução: para cada luz, os cliques que a afetam precisam, em XOR, dar o valor dela. Um único modelo (modelo/2) respondeu a três perguntas diferentes: quantas soluções existem (F1), qual é a menor (F3) e qual é o próximo clique (F2). O gerador (F4) usa o mesmo solver para conferir a dificuldade. O difícil ficou no outro lado dessa abstração: entender o que o motor faz de fato. Um findall que copiava variáveis desligava as restrições sem mostrar erro, e um predicado de otimização que parecia certo na teoria demorava minutos. Nos dois casos, o código parecia certo e só os testes mostraram o erro.
 
-[Reflexão.]
+No Elm, o compilador transformou várias regras do jogo em garantias. O tipo Celula = Ativa Forma Luz | Travada Luz impede que uma célula travada tenha carimbo. Como o tipo Fase é opaco, toda fase no programa é quadrada e tem tamanho válido. Cada resposta HTTP chega como Result, e o compilador obriga a tratar erros. Assim, quando o backend cai, aparece uma mensagem na tela em vez de a tela quebrar. Quando alguém adicionava uma mensagem nova, o compilador mostrava todos os case que precisavam lidar com ela.
 
----
-
-<!--
-  CHECKLIST ANTES DE ENTREGAR (apague esta seção depois de conferir)
-
-  - [ ] `uv run scripts/validar_entrega.py` termina sem erros.
-  - [ ] Todos os integrantes, com matrícula e turma, estão na seção 1.
-  - [ ] O commit ou tag da seção 1 existe no repositório e é a versão final.
-  - [ ] As instruções da seção 3 funcionam numa máquina sem nada instalado
-        além dos requisitos listados.
-  - [ ] Os locais indicados (arquivo:linha) conferem com o commit entregue.
-  - [ ] As seções 10 e 11 foram revisadas por todo o grupo.
-  - [ ] Se há slides, o arquivo está no repositório e o caminho da seção 1
-        está certo.
-  - [ ] Cada integrante entregou a própria avaliação 360 graus no seu
-        repositório individual, em avaliacao-360/<matricula>.md.
-  - [ ] Nenhum texto entre [colchetes] ou comentário de instrução sobrou.
--->
+As duas linguagens mudaram o jeito de pensar de forma parecida: nenhuma delas muda nada diretamente. No Prolog, pensamos em relações, ou seja, o que é verdade numa fase. No Elm, pensamos em como transformar: dado um estado e uma mensagem, qual será o próximo estado. As duas ideias se juntaram nos testes fuzz do Elm. As propriedades que esses testes conferem, como clicar duas vezes desfazer o clique ou a ordem não importar, são as mesmas que sustentam o modelo de restrições do Prolog.
