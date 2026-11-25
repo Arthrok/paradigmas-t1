@@ -222,33 +222,162 @@ dificuldade mínima antes de aceitar a fase.
   domínio. Explique as escolhas: por que um custom type e não um Bool, por
   que Maybe ou Result, etc.
 -->
+A implementação do frontend utiliza a arquitetura tradicional do Elm, organizada em três elementos principais: **Model**, **Update** e **View**. Essa estrutura permite separar o estado da aplicação, as operações que modificam esse estado e a interface apresentada ao usuário.
+
+O `Model` concentra as informações necessárias para representar o estado atual do jogo, como as configurações da partida, o modo de jogo, o nível de dificuldade, a ferramenta selecionada e a posição em foco no tabuleiro.
+
+A partida é representada por um tipo personalizado chamado `Partida`, que permite identificar diferentes situações do jogo, como a ausência de uma fase, a geração de uma nova fase, a ocorrência de erros, uma partida em andamento ou uma partida concluída.
+
+O estado do jogo também mantém informações como o histórico de movimentos, a configuração inicial da fase, a quantidade de cliques realizados e os recursos de ajuda disponíveis. O histórico é implementado pelo módulo `Historico.elm`, que permite avançar, desfazer e refazer operações sem modificar diretamente os estados anteriores.
+
+As mensagens (`Msg`) representam os eventos que podem ocorrer durante a execução da aplicação. Entre elas, estão ações realizadas pelo usuário, como clicar em uma posição do tabuleiro, desfazer ou refazer uma jogada, reiniciar a partida, escolher uma ferramenta e solicitar uma dica ou solução. Também existem mensagens destinadas a tratar respostas recebidas da API, como a geração de uma fase ou o retorno de uma operação de verificação.
+
+Essa organização permite que cada evento seja tratado de maneira específica pela função `update`, responsável por receber uma mensagem e produzir o novo estado da aplicação, podendo também gerar comandos para operações assíncronas.
+
+Os principais tipos são: 
+
 
 ```elm
-[type alias Model = ...]
-[type Msg = ...]
+type alias Model =
+    { config : Config
+    , partida : Partida
+    , modo : Modo
+    , nivel : Nivel
+    , posicaoEmFoco : Maybe Fase.Posicao
+    , ferramenta : Ferramenta
+    , idDica : Int
+    }
+
+type Partida
+    = SemFase
+    | Gerando
+    | FalhaAoGerar String
+    | Jogando Jogo
+    | Vencida Jogo
+
+type alias Jogo =
+    { historico : Historico.Historico Fase.Fase
+    , inicial : Fase.Fase
+    , cliques : Int
+    , minimo : Int
+    , ajuda : Ajuda
+    }
+
+type Ajuda
+    = SemAjuda
+    | PedindoDica
+    | Dica Fase.Posicao
+    | PedindoSolucao
+    | Verificando
+    | AnimandoSolucao (List Fase.Posicao)
+    | ErroAjuda String
+    | ResultadoVerificacao Int (Maybe Int)
+
+type Msg
+    = MudouConfig Config
+    | MudouTamanho Int
+    | MudouNivel Nivel
+    | MudouVariante Api.Variante
+    | NovaFase
+    | FaseGerada (Result String { fase : Fase.Fase, minimo : Int })
+    | Clicou Fase.Posicao
+    | Desfazer
+    | Refazer
+    | Reiniciar
+    | PedirDica
+    | PedirSolucao
+    | Verificar
+    | AplicouFerramenta Fase.Posicao
+    | MudouModo Modo
+    | EscolheuFerramenta Ferramenta
+    -- Demais mensagens de interação e respostas da API.
 ```
+
 
 [Explicação das escolhas.]
 
+O tipo Partida representa os diferentes estados possíveis de uma partida. Essa escolha evita utilizar vários valores booleanos para controlar situações como geração, jogo em andamento, falha e vitória.
+
+O tipo Ajuda organiza os estados relacionados às funcionalidades de dica, resolução e verificação. Por exemplo, PedindoDica indica uma solicitação em andamento, enquanto Dica Fase.Posicao armazena a posição retornada pela API.
+
+Também são utilizados outros tipos personalizados:
+- Modo: diferencia os modos Jogar e Editar.
+- Nivel: representa as dificuldades Facil, Medio e Dificil.
+- Api.Variante: representa as variantes clássica, carimbos e carimbos com travas.
+- Editor.Ferramenta: representa as ferramentas de edição.
+- Fase.Celula: diferencia células ativas e travadas, armazenando suas respectivas luzes.
+
+
+A utilização desses tipos permite representar explicitamente os estados válidos do sistema e utilizar o casamento de padrões (case) para tratar cada possibilidade.
+
+O tipo Maybe é utilizado quando uma informação pode não existir, como na posição em foco e no número mínimo de cliques de uma fase ainda não verificada. Já o tipo Result representa operações que podem produzir um valor ou uma mensagem de erro, como a criação de fases e as respostas da API.
+
+
 ### 6.2 Conceitos do paradigma funcional utilizados
 
-- [ ] Arquitetura Elm (Model, update, view): [onde]
-- [ ] Custom types e `case` exaustivo: [onde]
-- [ ] `Maybe` e `Result` no lugar de null e exceções: [onde]
-- [ ] Funções de ordem superior e aplicação parcial: [onde]
-- [ ] Composição (`|>`, `>>`): [onde]
-- [ ] Decoders e encoders JSON: [onde]
-- [ ] Comandos e subscriptions (efeitos controlados): [onde]
-- [ ] Imutabilidade e atualização de records: [onde]
-- [ ] Outro: [...]
+Durante o desenvolvimento do frontend, foram utilizados diversos conceitos fundamentais da programação funcional.
+
+- **Tipos personalizados (Custom Types):** utilizados para representar os estados e elementos do jogo. Exemplos são `Luz`, `Forma`, `Celula`, `Ferramenta` e `Partida`. Esses tipos tornam o código mais expressivo e permitem representar explicitamente as possibilidades de cada elemento.
+
+- **Correspondência de padrões (Pattern Matching):** utilizada por meio de expressões `case` para tratar diferentes valores de tipos personalizados. Isso permite implementar comportamentos específicos para cada situação, além de facilitar a identificação de casos que precisam ser tratados.
+
+- **Imutabilidade:** os dados não são modificados diretamente. Quando ocorre uma alteração no tabuleiro ou no estado da aplicação, uma nova estrutura é produzida a partir da anterior. Em registros, essa atualização pode ser realizada por meio da sintaxe `{ model | campo = novoValor }`.
+
+- **Tipos `Maybe` e `Result`:** utilizados para representar situações em que um valor pode estar ausente ou uma operação pode falhar. O tipo `Maybe` permite representar a ausência de informações, enquanto `Result` possibilita retornar um resultado de sucesso ou uma mensagem de erro, evitando o uso de exceções.
+
+- **Funções de ordem superior:** funções como `List.map`, `List.indexedMap`, `List.filter` e `List.all` são utilizadas para percorrer, transformar e verificar elementos de listas. Essas operações permitem manipular o tabuleiro de maneira declarativa, sem a necessidade de estruturas tradicionais de repetição.
+
+- **Composição de funções:** o operador `|>` é utilizado para encadear operações, tornando o fluxo de transformação dos dados mais legível. Também são utilizadas funções como `Result.andThen` para encadear operações que podem produzir erros.
+
+- **Manipulação de JSON:** o módulo `Api.elm` utiliza codificadores e decodificadores para converter os dados entre as estruturas do Elm e o formato JSON utilizado na comunicação com o backend.
+
+- **Comunicação assíncrona:** as requisições HTTP são realizadas por meio do módulo `Http` e dos comandos `Cmd`, permitindo que o frontend se comunique com o backend sem bloquear a execução da interface.
+
+- **Separação de responsabilidades:** o código foi dividido em módulos que concentram responsabilidades específicas. O módulo `Fase.elm` contém as regras relacionadas ao domínio do jogo; `Editor.elm` implementa operações de edição do tabuleiro; `Historico.elm` gerencia o histórico de movimentos; `Api.elm` concentra a comunicação com o backend; e `Main.elm` organiza o estado geral, o tratamento de eventos e a interface.
+
+Essa divisão facilita a manutenção do projeto, pois cada módulo possui uma responsabilidade bem definida, reduzindo o acoplamento entre as diferentes partes da aplicação.
+
 
 ### 6.3 Trecho em destaque
 
+
+Um exemplo da aplicação dos conceitos funcionais pode ser observado na função `apertar`, presente no módulo `Fase.elm`. Essa função recebe uma posição do tabuleiro e uma fase, identifica as células afetadas pela jogada e retorna uma nova fase com os estados dessas células invertidos.
+
+
 ```elm
-[trecho]
+apertar : Posicao -> Fase -> Fase
+apertar posicao fase =
+    let
+        alvos =
+            afetadas posicao fase
+
+        inverterSeAfetada l c cel =
+            if List.member { linha = l, coluna = c } alvos then
+                inverter cel
+            else
+                cel
+    in
+    Fase
+        (List.indexedMap
+            (\l fileira ->
+                List.indexedMap (inverterSeAfetada l) fileira
+            )
+            (linhas fase)
+        )
+
 ```
 
 [Explicação.]
+
+Inicialmente, a função utiliza afetadas para determinar quais posições do tabuleiro devem sofrer alterações a partir da posição selecionada. Em seguida, define a função auxiliar inverterSeAfetada, que verifica se cada célula pertence à lista de posições afetadas. Caso pertença, seu estado é invertido por meio da função inverter; caso contrário, a célula permanece inalterada.
+
+A transformação do tabuleiro é realizada utilizando List.indexedMap, que percorre as linhas e colunas preservando seus respectivos índices. Dessa forma, é possível identificar a posição de cada célula e aplicar a alteração somente nos elementos correspondentes.
+
+Esse trecho demonstra características importantes da programação funcional, como a utilização de funções de ordem superior, a composição de operações e a imutabilidade dos dados. Em vez de modificar diretamente o tabuleiro original, a função constrói e retorna uma nova estrutura com o resultado da jogada.
+
+Assim, a lógica de atualização do tabuleiro permanece isolada e previsível, facilitando os testes e a manutenção do código.
+
+
 
 ## 7. Integração
 
