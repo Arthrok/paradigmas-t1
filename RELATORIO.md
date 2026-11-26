@@ -14,9 +14,9 @@
 - **Nome do projeto:** Carimbó
 - **Nome do grupo:** Apagão
 - **Repositório:** https://github.com/Arthrok/paradigmas-t1
-- **Commit ou tag entregue:** `v1.0`
+- **Commit ou tag entregue:** `v1.1`
 - **Ponto de partida:** remix original
-- **Slides da apresentação oral:** não há
+- **Slides da apresentação oral:** [`docs/apresentacao.pdf`](docs/apresentacao.pdf)
 
 ## 2. Resumo
 
@@ -496,7 +496,7 @@ perder o controle do projeto, o grupo tomou estes cuidados:
 
 ## 12. Apresentação oral
 
-- **Slides:** não há
+- **Slides:** [`docs/apresentacao.pdf`](docs/apresentacao.pdf)
 - **Roteiro:**
 
 | Parte | Duração | Quem apresenta |
